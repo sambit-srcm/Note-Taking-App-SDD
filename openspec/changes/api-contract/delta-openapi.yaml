@@ -1,0 +1,529 @@
+# Sources: docs/FRS.md, docs/SDS.md §4-5. FRS/SDS define NO paths, methods or field names;
+# every route here is PROPOSED (x-proposed: true) and tagged with the FRS ID it satisfies.
+# Items needing a decision are marked "OPEN-n" and listed in openspec/changes/api-contract/OPEN_DECISIONS.md.
+openapi: 3.0.3
+info:
+  title: Note Taking API
+  version: 0.1.0-draft
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+tags:
+  - { name: Auth }
+  - { name: Notes }
+  - { name: Tags }
+  - { name: Search }
+  - { name: Sharing }
+  - { name: Versions }
+  - { name: Public }
+
+paths:
+  # ---------- Auth (FRS 5.1) ----------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register (FRS-AUTH-001)
+      x-proposed: true
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }   # duplicate normalized email (OPEN-9: enumeration vs FRS-AUTH-001)
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (FRS-AUTH-002)
+      x-proposed: true
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
+      responses:
+        '200': { description: Tokens issued, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token (FRS-AUTH-003)
+      description: Reuse of a rotated token revokes the token family and returns 401 (OPEN-1 transport).
+      x-proposed: true
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' } } } }
+      responses:
+        '200': { description: New token pair, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current refresh-token session (FRS-AUTH-003)
+      x-proposed: true
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' } } } }
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: Request OTP (FRS-AUTH-004)
+      description: Always 204 for well-formed input, whether or not the email is registered. OTP is logged to server console only.
+      x-proposed: true
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } } } } } }
+      responses:
+        '204': { description: Accepted }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }   # 60s resend cooldown, account + IP limits
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and set new password (FRS-AUTH-004)
+      x-proposed: true
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword]
+              properties:
+                email: { type: string, format: email }
+                otp: { type: string }          # OPEN-8: format/length
+                newPassword: { $ref: '#/components/schemas/Password' }
+      responses:
+        '204': { description: Password reset; OTP consumed }
+        '401': { $ref: '#/components/responses/Unauthorized' }   # invalid/expired/exhausted OTP (OPEN-8: 401 vs 422)
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ---------- Notes (FRS 5.2-5.4) ----------
+  /notes:
+    get:
+      tags: [Notes]
+      summary: List own notes (FRS-NOTE-004, FRS-TAG-002)
+      x-proposed: true
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [updatedAt, createdAt, title], default: updatedAt }   # OPEN-4
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+        - name: tagIds
+          in: query
+          description: Note must have ALL selected tags (AND). Omitted/empty = no filter.
+          schema: { type: array, items: { type: string, format: uuid } }
+          style: form
+          explode: false
+        - name: trash
+          in: query
+          description: true = list trashed notes only (owner's trash view).
+          schema: { type: boolean, default: false }
+      responses:
+        '200': { description: Page of notes, content: { application/json: { schema: { $ref: '#/components/schemas/NoteSummaryPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }   # OPEN-5: reject vs normalize
+    post:
+      tags: [Notes]
+      summary: Create note + initial version atomically (FRS-NOTE-001)
+      x-proposed: true
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NoteInput' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /notes/{noteId}:
+    parameters: [{ $ref: '#/components/parameters/NoteId' }]
+    get:
+      tags: [Notes]
+      summary: Read own note (FRS-NOTE-002). Trashed notes are readable by the owner.
+      x-proposed: true
+      responses:
+        '200': { description: Note, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Notes]
+      summary: Update note; snapshot in same transaction (FRS-NOTE-002)
+      description: Invalid/oversized updates change nothing and create no version. Trashed notes cannot be edited (OPEN-6).
+      x-proposed: true
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NoteUpdate' } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Notes]
+      summary: Move to trash, set deletedAt (FRS-NOTE-003). Idempotent.
+      x-proposed: true
+      responses:
+        '204': { description: Trashed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notes/{noteId}/restore:
+    post:
+      tags: [Notes]
+      summary: Restore from trash within 30 days (FRS-NOTE-003). Idempotent.
+      x-proposed: true
+      parameters: [{ $ref: '#/components/parameters/NoteId' }]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }   # also after permanent purge
+
+  # ---------- Tags (FRS-TAG-001) ----------
+  /tags:
+    get:
+      tags: [Tags]
+      summary: List own tags with note counts (non-deleted notes only)
+      x-proposed: true
+      responses:
+        '200': { description: Tags, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Tag' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Tags]
+      summary: Create tag
+      x-proposed: true
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TagInput' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Tag' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /tags/{tagId}:
+    parameters: [{ $ref: '#/components/parameters/TagId' }]
+    patch:
+      tags: [Tags]
+      summary: Rename tag
+      x-proposed: true
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TagInput' } } } }
+      responses:
+        '200': { description: Renamed, content: { application/json: { schema: { $ref: '#/components/schemas/Tag' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Tags]
+      summary: Delete tag; removes associations, keeps notes
+      x-proposed: true
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notes/{noteId}/tags/{tagId}:
+    parameters: [{ $ref: '#/components/parameters/NoteId' }, { $ref: '#/components/parameters/TagId' }]
+    put:
+      tags: [Tags]
+      summary: Assign own tag to own note (idempotent)
+      x-proposed: true
+      responses:
+        '204': { description: Assigned }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Tags]
+      summary: Remove tag from note
+      x-proposed: true
+      responses:
+        '204': { description: Removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- Search (FRS-SEARCH-001) ----------
+  /search:
+    get:
+      tags: [Search]
+      summary: Full-text search over own non-deleted notes
+      x-proposed: true
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }   # OPEN-7: empty / punctuation-only behavior
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Ranked page with highlighted previews, content: { application/json: { schema: { $ref: '#/components/schemas/SearchResultPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ---------- Sharing (FRS-SHARE-001/002) ----------
+  /notes/{noteId}/share:
+    parameters: [{ $ref: '#/components/parameters/NoteId' }]
+    post:
+      tags: [Sharing]
+      summary: Create share link for a non-deleted own note
+      description: One active link per note (OPEN-3). Token returned only in this response.
+      x-proposed: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiresInDays: { type: integer, minimum: 1, maximum: 30, default: 7 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ShareLinkCreated' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    get:
+      tags: [Sharing]
+      summary: Share status, expiry, view count (owner)
+      x-proposed: true
+      responses:
+        '200': { description: Status, content: { application/json: { schema: { $ref: '#/components/schemas/ShareLink' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Sharing]
+      summary: Revoke share link
+      x-proposed: true
+      responses:
+        '204': { description: Revoked }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /shared/{token}:
+    get:
+      tags: [Public]
+      summary: Public read-only note view (FRS-SHARE-001/002)
+      description: |
+        No authentication. Restricted response path: title, content, updatedAt only.
+        Expired/revoked/invalid/deleted-note links all return the same 404.
+        View counting and 30-minute anonymous dedupe: mechanism OPEN-2.
+      x-proposed: true
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Shared note, content: { application/json: { schema: { $ref: '#/components/schemas/SharedNote' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ---------- Versions (FRS 5.7) ----------
+  /notes/{noteId}/versions:
+    get:
+      tags: [Versions]
+      summary: List versions (owner only)
+      x-proposed: true
+      parameters:
+        - { $ref: '#/components/parameters/NoteId' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Newest first, content: { application/json: { schema: { $ref: '#/components/schemas/VersionSummaryPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notes/{noteId}/versions/{versionId}:
+    get:
+      tags: [Versions]
+      summary: Inspect a version
+      x-proposed: true
+      parameters: [{ $ref: '#/components/parameters/NoteId' }, { $ref: '#/components/parameters/VersionId' }]
+      responses:
+        '200': { description: Version, content: { application/json: { schema: { $ref: '#/components/schemas/Version' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notes/{noteId}/versions/{versionId}/restore:
+    post:
+      tags: [Versions]
+      summary: Restore version atomically; recorded as a new version (FRS-VERSION-002)
+      x-proposed: true
+      parameters: [{ $ref: '#/components/parameters/NoteId' }, { $ref: '#/components/parameters/VersionId' }]
+      responses:
+        '200': { description: Note after restore, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }   # snapshot fails current validation
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT, description: Access token, 15-minute lifetime. Ownership enforced server-side on every private resource; another user's resource returns 404. }
+  parameters:
+    NoteId: { name: noteId, in: path, required: true, schema: { type: string, format: uuid } }   # OPEN-10 id type
+    TagId: { name: tagId, in: path, required: true, schema: { type: string, format: uuid } }
+    VersionId: { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+  responses:
+    ValidationError: { description: Semantic validation failure (422), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: Authentication required or invalid, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Unavailable or concealed (incl. other users' resources), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: Uniqueness/state conflict, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    PayloadTooLarge: { description: Body exceeds HTTP cap (1 MiB document + bounded envelope), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    RateLimited: { description: Rate limit exceeded, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error:
+      type: object
+      required: [error, requestId]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }   # OPEN-11: code catalogue
+            message: { type: string }
+            fields: { type: array, items: { type: object, properties: { path: { type: string }, message: { type: string } } } }   # shape of items OPEN-11
+        requestId: { type: string }
+    Password: { type: string, writeOnly: true }   # OPEN-12: password policy not defined in FRS/SDS
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { $ref: '#/components/schemas/Password' }
+    User:
+      type: object
+      required: [id, email, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+    AuthTokens:
+      type: object
+      required: [accessToken, refreshToken]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    TipTapDoc:
+      type: object
+      description: Canonical TipTap JSON, root type "doc". Server-validated - approved nodes/marks only, <=1,048,576 UTF-8 bytes serialized, depth <=20 (root 0), <=10,000 nodes. Exact node/mark allowlist defined in packages/shared (OPEN-13).
+      required: [type]
+      properties:
+        type: { type: string, enum: [doc] }
+        content: { type: array, items: { type: object } }
+      additionalProperties: true
+    Title: { type: string, description: Trimmed, non-blank, <=200 Unicode code points }
+    NoteInput:
+      type: object
+      required: [title, content]
+      properties:
+        title: { $ref: '#/components/schemas/Title' }
+        content: { $ref: '#/components/schemas/TipTapDoc' }
+    NoteUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title: { $ref: '#/components/schemas/Title' }
+        content: { $ref: '#/components/schemas/TipTapDoc' }
+    Note:
+      type: object
+      required: [id, title, content, tags, createdAt, updatedAt, deletedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { $ref: '#/components/schemas/TipTapDoc' }
+        tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    NoteSummary:
+      type: object
+      required: [id, title, tags, updatedAt, deletedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    Pagination:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    NoteSummaryPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/NoteSummary' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    SearchResult:
+      type: object
+      required: [id, title, snippet, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        snippet: { type: string, description: Plain-text preview with matches marked (marker format OPEN-7) }
+        updatedAt: { type: string, format: date-time }
+    SearchResultPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/SearchResult' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    TagInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, description: Trimmed; max length and case/normalization policy OPEN-14 }
+    Tag:
+      type: object
+      required: [id, name, noteCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        noteCount: { type: integer, description: Non-deleted notes only (OPEN-14) }
+    ShareLink:
+      type: object
+      required: [status, expiresAt, viewCount]
+      properties:
+        status: { type: string, enum: [active, expired, revoked] }
+        expiresAt: { type: string, format: date-time }
+        viewCount: { type: integer }
+    ShareLinkCreated:
+      allOf:
+        - $ref: '#/components/schemas/ShareLink'
+        - type: object
+          required: [token]
+          properties:
+            token: { type: string, description: Shown once; only a lookup/hash is stored }
+    SharedNote:
+      type: object
+      required: [title, content, updatedAt]
+      properties:
+        title: { type: string }
+        content: { $ref: '#/components/schemas/TipTapDoc' }
+        updatedAt: { type: string, format: date-time }
+    VersionSummary:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        createdAt: { type: string, format: date-time }
+    Version:
+      allOf:
+        - $ref: '#/components/schemas/VersionSummary'
+        - type: object
+          required: [content]
+          properties:
+            content: { $ref: '#/components/schemas/TipTapDoc' }
+    VersionSummaryPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/VersionSummary' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
