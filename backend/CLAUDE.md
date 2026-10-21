@@ -1,8 +1,10 @@
 # backend/ — Express 5 API
+
 Root `CLAUDE.md` and `AGENTS.md` still apply. This file adds backend-only rules.
 Nothing is scaffolded yet. Commands below are the intended ones, so confirm `package.json` before running them.
 
 ## Commands (run from repo root)
+
 ```bash
 pnpm --filter ./backend dev            # API dev server
 pnpm --filter ./backend test           # Vitest + Supertest (needs test Postgres)
@@ -13,7 +15,8 @@ pnpm --filter ./backend prisma generate
 ```
 
 ## Patterns
-- Layers: `routes → middleware (auth, rate limit) → validate (Zod from @shared) → service → Prisma`.
+
+- Layers: `routes → middleware (auth, rate limit) → validate (Zod from @notes/shared) → service → Prisma`.
 - Routes only parse, call one service, and shape the response. All business logic lives in services.
 - Every private query is scoped by `ownerId = req.user.id`. Fetch-then-check is not enough. Put the owner in the `where` clause.
 - Cross-user or missing resource → `404`, never `403` (pending contract approval).
@@ -27,6 +30,7 @@ pnpm --filter ./backend prisma generate
 - Put the body-size limit on `express.json` (1 MiB + envelope). Return `413` on overflow.
 
 ## Anti-patterns
+
 - Business logic or Prisma calls inside route handlers.
 - Trusting `userId` or `ownerId` from the request body or params.
 - Returning Prisma models directly. Map them to DTOs.

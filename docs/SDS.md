@@ -1,6 +1,8 @@
 # Software Design Specification (SDS)
 ## Note Taking Application
- 
+
+**Status:** Working draft  
+**Purpose:** Minimal technical blueprint for implementation by a Claude coding agent. The FRS defines functional behavior; OpenSpec contains approved change requirements and scenarios. If implementation details conflict with approved requirements, stop and resolve the discrepancy before coding.
 
 ## 1. Technology Stack and Repository
 
@@ -19,9 +21,8 @@ Pin dependency and tool versions. Do not use `@latest`.
 ### Repository layout
 
 ```text
-apps/
-  web/       # React application
-  api/       # Express API and application services
+backend/      # Express API and application services
+frontend/     # React application
 packages/
   shared/    # Shared TypeScript types and Zod schemas
 openspec/    # Specifications, changes, scenarios, archives
@@ -134,4 +135,25 @@ The approved OpenAPI contract is authoritative; do not invent or change API beha
 - Centralize error handling; return safe client errors and useful structured server diagnostics.
 - Soft-delete notes using `deletedAt`; never physically delete a note during its 30-day recovery window.
 - Recommended baseline: purge notes, versions, and related share links after the recovery window using an idempotent scheduled cleanup job.
+
+### Ticket sequence
+
+Preserve the approved ticket IDs and scope:
+
+- AB-1001: Project setup
+- AB-1002: Authentication
+- AB-1003: OTP password reset
+- AB-1004: Note CRUD and soft delete
+- AB-1005: Pagination, sorting, and tag filters
+- AB-1006: Tags and counts
+- AB-1007: Search
+- AB-1008: Sharing
+- AB-1009: Version history
+- AB-1010: Authentication UI
+- AB-1011: Notes list UI
+- AB-1012: TipTap editor and autosave
+- AB-1013: Search UI
+- AB-1014: Share modal
+- AB-1015: History drawer and restore
+- AB-1016: Playwright end-to-end journey
 

@@ -1,0 +1,9 @@
+// Models and migrations arrive with AB-1002+. Schema changes go through Prisma migrations only.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
