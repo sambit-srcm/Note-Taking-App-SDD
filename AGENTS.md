@@ -4,7 +4,7 @@ Single source of truth for all AI tools on this team. Derived from `docs/FRS.md`
 If this file conflicts with the FRS/SDS or the approved OpenAPI contract, the spec wins — then fix this file.
 
 > **Status:** Pre-implementation. The repo currently holds only specs (`docs/`, `openspec/`) and tooling (`.claude/`, `graphify-out/`).
-> No `apps/` or `packages/` code, `package.json`, or tests exist yet. Items marked *(planned)* are not real yet — verify before relying on them.
+> No `backend/`, `frontend/` or `packages/` code, `package.json`, or tests exist yet. Items marked *(planned)* are not real yet — verify before relying on them.
 
 ## 1. Project Overview
 A web-based note-taking app. Authenticated users create, organize, edit, search, share, and recover rich-text notes.
@@ -13,8 +13,8 @@ Single-user-owned notes; no real-time collaboration.
 
 ## 2. Repository Structure
 ```text
-apps/web/          # React app (UI, TipTap editor)                      (planned)
-apps/api/          # Express API, middleware, application services      (planned)
+frontend/          # React app (UI, TipTap editor)                      (planned)
+backend/           # Express API, middleware, application services      (planned)
 packages/shared/   # Zod schemas, TS types, validation constants        (planned)
 docs/              # FRS.md (what), SDS.md (how)
 openspec/          # Specs, changes, archives. Draft API contract: openspec/changes/api-contract/
@@ -41,7 +41,7 @@ pnpm build            # build all packages
 pnpm lint             # lint all
 pnpm test             # Vitest (unit + Supertest integration)
 pnpm test:e2e         # Playwright
-pnpm prisma migrate dev   # run from apps/api
+pnpm prisma migrate dev   # run from backend
 ```
 
 ## 5. Architecture Patterns
@@ -114,9 +114,9 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - **Vitest:** unit tests (services, shared Zod schemas, UI logic).
 - **Supertest:** API integration tests against a real PostgreSQL test DB.
 - **Playwright:** end-to-end user flows.
-- Location: colocate unit tests with source (`*.test.ts`); e2e under `apps/web/e2e/` *(planned — confirm when scaffolded)*.
+- Location: colocate unit tests with source (`*.test.ts`); e2e under `frontend/e2e/` *(planned — confirm when scaffolded)*.
 - Always cover: ownership isolation (user A can't touch user B's data), validation limits, transaction rollback, token reuse, expired/revoked share links.
-- Spec-driven (OpenSpec): implement one approved task at a time, verify against its acceptance criteria.
+- Spec-driven (OpenSpec): implement one approved task at a time. The tester derives cases from `docs/FRS.md` bullets during `/opsx:apply`. Verify against those criteria.
 
 ## 12. Shared Packages (`packages/shared`)
 Planned contents (not yet created):
@@ -124,7 +124,7 @@ Planned contents (not yet created):
 - TypeScript types inferred from those schemas
 - Validation constants (title/content/depth/node limits, page sizes, OTP/expiry defaults)
 - API response and error-shape types
-It is the **only** place for cross-app contracts. Don't duplicate schemas in `apps/web` or `apps/api`.
+It is the **only** place for cross-app contracts. Don't duplicate schemas in `frontend` or `backend`.
 
 ## 13. Do NOT Do
 - Don't use `@latest`, floating versions, or swap any fixed-stack technology.
@@ -139,3 +139,12 @@ It is the **only** place for cross-app contracts. Don't duplicate schemas in `ap
 - Don't expose version history, owner metadata, or editing via public share links.
 - Don't build out-of-scope features: real-time collab, attachments, mobile apps, OAuth/social login, nested folders, real email delivery.
 - Don't edit `graphify-out/` by hand; use `graphify query` before grepping raw files.
+
+## 14. Change workflow
+Use OpenSpec commands, not the manual `/spec`, `/plan`, `/tasks`, and `/implement` sequence.
+
+- `/opsx:propose` creates the change and its artifacts. One delta spec unless a capability is independently deliverable. Keep the proposal, spec, design, and tasks short (`openspec/config.yaml`).
+- `/opsx:apply` implements tasks and starts the `tester` agent in parallel once the FRS bullets and the contract under test are known.
+- `/opsx:update` revises artifacts. `/opsx:sync` updates main specs. `/opsx:archive` finishes the change.
+- The `reviewer` agent writes `openspec/changes/<name>/review-log.md` before archive or a PR. Open Critical or High findings block archive.
+- `/pr` is the pull-request step after that review.

@@ -103,3 +103,4 @@ After each invocation, show:
 - Do not advance the build frontier: if an artifact has empty `existingOutputPaths` and status `ready` or `blocked`, creating them is a separate step, outside this workflow. Leave `skipped` artifacts untouched. The only new-file scope is a confirmed concrete path under a glob artifact whose `existingOutputPaths` is non-empty.
 - Confirm every edit with the user before writing.
 - If the request changes the change's *intent* rather than refining it, ask for a distinct unused change name and recommend `openspec new change "<new-change-name>"` instead (the "Update vs. Start Fresh" heuristic).
+- Keep revisions short. Follow `openspec/config.yaml`: one delta spec unless a capability is independently deliverable, and do not grow a proposal, design, or task list into a narrative.

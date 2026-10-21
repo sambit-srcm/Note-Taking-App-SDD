@@ -108,6 +108,8 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
    **If `totalTasks` is zero:** Proceed without a task-related warning.
 
+   **Review log.** Read `openspec/changes/<name>/review-log.md`. If a Critical or High finding is still `open`, stop and ask the user to resolve it. If the log is missing, warn and ask before archiving.
+
 4. **Assess delta spec sync state**
 
    Use `artifactPaths.specs.existingOutputPaths` from status JSON as the only

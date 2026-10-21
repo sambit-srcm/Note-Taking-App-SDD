@@ -7,7 +7,7 @@ Steps:
    npx commitlint --from HEAD~1
    (Fix any failures before proceeding)
 2.Run: git diff main --stat
-3.Read: openspec/archive/$ARGUMENTS/proposal.md
+3.Read `openspec/changes/$ARGUMENTS/review-log.md`, or the archived copy. Stop if a Critical or High finding is open or the log is missing. Read the proposal next.
 4.Generate commit:
    feat(scope): description AB#ticket
    -bullet 1

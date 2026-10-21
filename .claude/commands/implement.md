@@ -1,27 +1,7 @@
-Implement: $ARGUMENTS
+Do not implement from this command.
 
-Before writing ONE line of code, read:
-1.AGENTS.md
-2.docs/FRS.md (business rules for this feature)
-3.docs/SDS.md (API contracts, DB schema, design decisions)
-4.Domain CLAUDE.md
-5.openspec/changes/$ARGUMENTS/proposal.md
-6.openspec/changes/$ARGUMENTS/plan.md
-7.openspec/changes/$ARGUMENTS/tasks.md
+Run `/opsx:apply $ARGUMENTS`.
 
-Rules:
--Ask [y/n] before every file write
--After every phase: pnpm build → pnpm lint → pnpm test
--Write tests BEFORE or ALONGSIDE implementation
--Never skip a failing test
--At 60k tokens: save to session-context.md → /clear → resume
--When complete: openspec archive $ARGUMENTS
+That workflow implements the change and starts the `tester` agent in parallel once the in-scope `docs/FRS.md` bullets and the contract under test are known. The reviewer runs before archive.
 
-Output when done:
-## Files Changed + why
-## Spec Scenarios Covered (scenario → test name)
-## FRS Requirements Covered (requirement ID → implementation)
-## Assumptions Made
-## Follow-up Tasks
-
-Format: /implement AB-1042-user-registration
+Stop after naming the command.

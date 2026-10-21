@@ -1,14 +1,5 @@
-Run OpenSpec proposal creation for: $ARGUMENTS
+Do not create a proposal from this command.
 
-Steps:
-1.Run: openspec changes list
-2.Read: openspec/specs/ (current system state)
-3.Read: docs/FRS.md → find relevant requirements for this ticket
-4.Read: docs/SDS.md → find relevant design decisions for this ticket
-5.Read: AGENTS.md (constraints)
-6.Ask clarifying questions — minimum 3, maximum 8
-7.Run: openspec proposal $ARGUMENTS
-8.Show generated proposal.md and spec delta
-9.Do NOT proceed to implementation
+Run `/opsx:propose $ARGUMENTS` instead. That creates the change and the short artifact set in `openspec/config.yaml` (one delta spec unless a capability is independently deliverable).
 
-Format: /spec AB-1042-user-registration
+Stop after naming that command. Do not implement.

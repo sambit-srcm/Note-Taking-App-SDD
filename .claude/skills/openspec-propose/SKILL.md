@@ -172,3 +172,4 @@ After completing all artifacts, summarize:
 - Ask about ambiguities that would materially change scope, externally observable behavior, compatibility, or acceptance criteria; for minor details, make reasonable assumptions and record them
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+- Keep artifacts short. Follow `openspec/config.yaml` rules: one delta spec unless capabilities are independently deliverable, and no long proposal, design, or task narrative
