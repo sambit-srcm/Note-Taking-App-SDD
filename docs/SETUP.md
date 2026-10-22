@@ -17,7 +17,7 @@ Local development setup for the note-taking app (pnpm workspaces monorepo).
 ## Install
 
 ```bash
-pnpm install    # use --frozen-lockfile in CI; also runs prisma generate for backend
+pnpm install    # CI uses --frozen-lockfile; also runs prisma generate for backend
 ```
 
 ## Environment
@@ -62,5 +62,7 @@ pnpm --filter ./backend prisma migrate dev      # only once models exist
 | `pnpm test` | Vitest in every package (unit + Supertest); no database needed |
 | `pnpm --filter ./backend test:db` | Database-backed tests; needs `docker compose up -d` |
 | `pnpm test:e2e` | Playwright against the Vite dev server; needs browsers installed |
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm test`, and `pnpm build` on pull requests and on pushes to `development` and `main`. It does not run `test:db` or `test:e2e`.
 
 Quick check: with `pnpm dev` running, `curl http://localhost:3000/api/health` returns `{"status":"ok"}` and http://localhost:5173 shows the app.
