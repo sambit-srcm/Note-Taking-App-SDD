@@ -10,9 +10,9 @@ rules:
   proposal:
     - Stay under about 400 words. State the change, why, and what is out of scope. No background essay.
   specs:
-    - One delta spec per change.
+    - One delta spec per change. A small or straightforward update edits that delta. It does not add a new spec file or a new change.
+    - If the capability already exists under openspec/specs/, update that delta in place: ## ADDED Requirements for new behavior, ## MODIFIED Requirements for changed behavior, ## REMOVED Requirements for dropped behavior. Do not create a second capability folder or another ticket for a tweak.
     - Add another spec only when a capability can be implemented and verified on its own, or when one file would mix unrelated acceptance boundaries. Name that reason in the proposal.
-    - Consolidate related requirements into that spec. Do not split a small or straightforward change.
     - Each requirement is a short statement plus the scenarios needed to judge it. Link FRS ids. Do not copy the whole FRS.
   design:
     - Stay under about 400 words unless a security, migration, or transaction decision needs one extra paragraph.
