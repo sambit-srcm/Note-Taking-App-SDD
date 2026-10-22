@@ -1,6 +1,5 @@
 # frontend/ — React 19 + Vite
 Root `CLAUDE.md` and `AGENTS.md` still apply. This file adds frontend-only rules.
-Nothing is scaffolded yet. Commands below are the intended ones, so confirm `package.json` before running them.
 
 ## Commands (run from repo root)
 ```bash

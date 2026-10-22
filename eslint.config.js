@@ -22,5 +22,9 @@ export default defineConfig([
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
+  {
+    files: ['frontend/src/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+  },
   prettier,
 ]);

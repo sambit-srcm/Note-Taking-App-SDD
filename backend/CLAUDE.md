@@ -1,7 +1,6 @@
 # backend/ — Express 5 API
 
 Root `CLAUDE.md` and `AGENTS.md` still apply. This file adds backend-only rules.
-Nothing is scaffolded yet. Commands below are the intended ones, so confirm `package.json` before running them.
 
 ## Commands (run from repo root)
 
