@@ -22,6 +22,14 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 13. **TipTap node/mark/attribute allowlist**: must be fixed in `packages/shared` before validation can be specified; schema here is intentionally loose.
 14. **Tag normalization** (case, max length) and **tag count** definition (drafted: non-deleted notes only, per FRS-TAG-001 text).
 
+## Resolved for AB-1002 (user-approved 2026-10-22)
+- **OPEN-1:** refresh token travels in the JSON body (`RefreshRequest`/`AuthTokens`). No cookie code.
+- **OPEN-9:** register returns `409` for a duplicate normalized email.
+- **OPEN-11 (auth subset):** codes `VALIDATION_ERROR` (422), `UNAUTHORIZED` (401), `CONFLICT` (409), `RATE_LIMITED` (429), plus existing `NOT_FOUND`, `INTERNAL_ERROR`; `fields` items are `{ path: string, message: string }` with fixed messages that never echo input. Still provisional until the full catalogue is approved.
+- **OPEN-12:** password length 12 to 128 characters, no composition rules.
+- **Implemented in AB-1002:** the four operations above are no longer `x-proposed`. `User` is `{id, email}`. Logout keeps `bearerAuth` plus a refresh-token body. Malformed or oversized JSON bodies return `422 VALIDATION_ERROR` (no new status). Rate-limit defaults are env-configurable (`*_RATE_LIMIT_MAX`, `*_RATE_LIMIT_WINDOW_SECONDS`).
+- **Rate limits (auth):** login 5/min, register 5/hour, refresh 30/min, per IP and per normalized email where present; defaults configurable via env.
+
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.
 - Status `413` and body cap: FRS/SDS give no numeric HTTP cap beyond "1 MiB + bounded envelope"; the number is a `/plan` item.
@@ -53,9 +61,9 @@ All of the following are **PROPOSED**, not approved. Defined behavior (ownership
 
 | Requirement | SDS constraint | Operation(s) |
 |---|---|---|
-| FRS-AUTH-001 | §4 validation, §5 hashing | POST /auth/register |
-| FRS-AUTH-002 | §5 hashed tokens, JWT 15m | POST /auth/login; bearerAuth on all private ops |
-| FRS-AUTH-003 | §5 rotation + reuse detection | POST /auth/refresh, POST /auth/logout |
+| FRS-AUTH-001 | §4 validation, §5 hashing | POST /auth/register (approved, AB-1002) |
+| FRS-AUTH-002 | §5 hashed tokens, JWT 15m | POST /auth/login (approved, AB-1002); bearerAuth on all private ops |
+| FRS-AUTH-003 | §5 rotation + reuse detection | POST /auth/refresh, POST /auth/logout (approved, AB-1002) |
 | FRS-AUTH-004 | §5 OTP defaults, rate limits | POST /auth/password-reset/request, /confirm |
 | FRS-NOTE-001 | §3 transaction, §4 limits | POST /notes |
 | FRS-NOTE-002 | §3 txn, §5 ownership | GET, PATCH /notes/{noteId} |

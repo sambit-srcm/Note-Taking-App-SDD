@@ -17,7 +17,7 @@ Local development setup for the note-taking app (pnpm workspaces monorepo).
 ## Install
 
 ```bash
-pnpm install    # use --frozen-lockfile in CI; also runs prisma generate for backend
+pnpm install    # CI uses --frozen-lockfile; also runs prisma generate for backend
 ```
 
 `pnpm install` runs the `prepare` script, which registers Husky. No extra hook install is required.
@@ -54,6 +54,9 @@ cp .env.example .env    # never commit .env
 | `NODE_ENV` | backend | `development`, `test` or `production` |
 | `PORT` | backend | API port (default 3000) |
 | `DATABASE_URL` | backend, Prisma | PostgreSQL connection string |
+| `JWT_SECRET` | backend | HS256 signing secret, at least 32 characters (`openssl rand -base64 48`). Never commit it |
+| `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS` | backend | Token lifetimes; default 900 (15 min) and 604800 (7 days) |
+| `LOGIN_`, `REGISTER_`, `REFRESH_` + `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_SECONDS` | backend | Auth rate limits per IP and per email. Defaults: login 5/60 s, register 5/3600 s, refresh 30/60 s. In-memory, per process |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | docker-compose | Local database credentials |
 | `VITE_API_URL` | frontend | Absolute http(s) URL of the API, e.g. `http://localhost:3000` |
 
@@ -67,12 +70,12 @@ docker compose ps               # wait for "healthy"
 pnpm --filter ./backend db:check   # runs SELECT 1; prints no credentials
 ```
 
-Prisma is configured (generator and datasource) but has **no models and no migrations yet**. Commands, run from the repo root:
+Prisma models for authentication (`User`, `RefreshTokenSession`) are defined in `backend/prisma/schema.prisma`. The migration is created only after approval (AB-1002 task 3.1); until it is applied, DB-backed auth tests (`pnpm --filter ./backend test:db`) cannot run. Commands, run from the repo root:
 
 ```bash
 pnpm db:generate                                # prisma generate
 pnpm --filter ./backend prisma validate
-pnpm --filter ./backend prisma migrate dev      # only once models exist
+pnpm --filter ./backend prisma migrate dev      # creates and applies the migration (needs approval)
 ```
 
 ## Scripts (repo root)
@@ -85,5 +88,7 @@ pnpm --filter ./backend prisma migrate dev      # only once models exist
 | `pnpm test` | Vitest in every package (unit + Supertest); no database needed |
 | `pnpm --filter ./backend test:db` | Database-backed tests; needs `docker compose up -d` |
 | `pnpm test:e2e` | Playwright against the Vite dev server; needs browsers installed |
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm test`, and `pnpm build` on pull requests and on pushes to `development` and `main`. It does not run `test:db` or `test:e2e`.
 
 Quick check: with `pnpm dev` running, `curl http://localhost:3000/api/health` returns `{"status":"ok"}` and http://localhost:5173 shows the app.
