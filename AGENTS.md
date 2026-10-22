@@ -4,14 +4,16 @@ Single source of truth for all AI tools on this team. Derived from `docs/FRS.md`
 If this file conflicts with the FRS/SDS or the approved OpenAPI contract, the spec wins — then fix this file.
 
 > **Status:** Pre-implementation. The repo currently holds specs (`docs/`, `openspec/`) and tooling (`.claude/`).
-> No `backend/`, `frontend/` or `packages/` code, `package.json`, or tests exist yet. Items marked *(planned)* are not real yet — verify before relying on them.
+> No `backend/`, `frontend/` or `packages/` code, `package.json`, or tests exist yet. Items marked _(planned)_ are not real yet — verify before relying on them.
 
 ## 1. Project Overview
+
 A web-based note-taking app. Authenticated users create, organize, edit, search, share, and recover rich-text notes.
 Features: tags, full-text search with highlights, public read-only share links (expiry + view counts), per-save version history with restore, and 30-day trash.
 Single-user-owned notes; no real-time collaboration.
 
 ## 2. Repository Structure
+
 ```text
 frontend/          # React app (UI, TipTap editor)                      (planned)
 backend/           # Express API, middleware, application services      (planned)
@@ -21,9 +23,11 @@ openspec/          # Specs, changes, archives. Draft API contract: openspec/chan
 .claude/           # Agents (engineer, reviewer, tester), skills, /opsx commands, hooks
 .code-review-graph/ # Local code-review-graph database. Gitignored. Query it through the VS Code MCP.
 ```
+
 Follow the approved repo structure if it differs from the layout above.
 
 ## 3. Tech Stack (fixed — do not substitute)
+
 - **Web:** React 19, TypeScript, Vite, TanStack Query, Zustand, TipTap, shadcn/ui
 - **API:** Node.js 22, Express 5, TypeScript
 - **DB:** PostgreSQL 16 + Prisma ORM; search via PostgreSQL full-text search
@@ -33,7 +37,9 @@ Follow the approved repo structure if it differs from the layout above.
 - **Pin every dependency and tool version. Never use `@latest` or floating ranges.** Commit the lockfile.
 
 ## 4. Key Commands
+
 Run under Node 22 (see `docs/SETUP.md`). Root scripts:
+
 ```bash
 pnpm install                 # install (use --frozen-lockfile in CI)
 pnpm dev                     # web (:5173) + api (:3000) + shared watch
@@ -48,7 +54,9 @@ pnpm --filter ./backend prisma migrate dev   # run from root; needs approval
 ```
 
 ## 5. Architecture Patterns
+
 Request flow: `React UI → API client → Express routes/middleware → validation → application services → Prisma → PostgreSQL`
+
 - **Web:** TanStack Query owns server state (cache, mutations). Zustand holds transient client state only.
 - **API:** routes → auth/ownership middleware → Zod validation → services → Prisma. Centralized error handler.
 - **Business logic lives in application services**, not route handlers.
@@ -58,6 +66,7 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - PostgreSQL is the source of truth.
 
 ## 6. Coding Standards
+
 - TypeScript everywhere; no `any` for API boundaries — derive types from Zod schemas (`z.infer`).
 - Server validation is authoritative; client validation is only for fast feedback.
 - Never truncate content silently. Reject invalid input.
@@ -71,6 +80,7 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - Match surrounding code style. No unrelated refactors in a task.
 
 ## 7. Auth Approach
+
 - Register with email + password. Normalize email before uniqueness checks. Passwords stored as secure hashes.
 - Login issues a JWT access token (15 min) and a refresh token (7 days). Refresh tokens are stored **hashed** in `RefreshTokenSession`.
 - Refresh **rotates** the token. Reuse of a rotated token → revoke the whole token family, force re-login.
@@ -81,6 +91,7 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - Refresh-token transport (JSON body vs httpOnly cookie) is an **open decision** — don't assume.
 
 ## 8. API Design Conventions
+
 - The approved OpenAPI contract is authoritative. **Do not invent or change API behavior in implementation.** Draft: `openspec/changes/api-contract/delta-openapi.yaml` (all routes still `x-proposed`).
 - Proposed shape: resource-style REST under `/api`, JSON only. `PATCH /notes/{id}`, `DELETE` = trash, `POST /notes/{id}/restore`, `GET /notes?trash=true`, `GET /search`, `/notes/{id}/share`, public `GET /shared/{token}`, `/auth/*`.
 - Lists: `page`/`pageSize` (default 20, max 100), stable order `updatedAt DESC, id`. Tag filter uses **AND** semantics.
@@ -89,15 +100,16 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - See `openspec/changes/api-contract/OPEN_DECISIONS.md` for unresolved items (password policy, TipTap allowlist, tag normalization, error code catalogue, etc.).
 
 ## 9. DB Schema Summary (Prisma; final fields/indexes confirmed in planning)
-| Model | Essentials |
-|---|---|
-| `User` | id, email, normalized email (unique), password hash, timestamps |
-| `RefreshTokenSession` | userId, token hash, family/session id, expiry, revocation |
-| `Note` | id, ownerId, title, TipTap JSON, search data, timestamps, `deletedAt` |
-| `Tag` | id, ownerId, name + normalization fields (unique per owner) |
-| `NoteTag` | noteId, tagId (unique pair) |
-| `NoteVersion` | noteId, title snapshot, TipTap JSON snapshot, createdAt |
-| `ShareLink` | noteId, secure token hash/lookup, expiry, revocation, view-count data |
+
+| Model                    | Essentials                                                            |
+| ------------------------ | --------------------------------------------------------------------- |
+| `User`                   | id, email, normalized email (unique), password hash, timestamps       |
+| `RefreshTokenSession`    | userId, token hash, family/session id, expiry, revocation             |
+| `Note`                   | id, ownerId, title, TipTap JSON, search data, timestamps, `deletedAt` |
+| `Tag`                    | id, ownerId, name + normalization fields (unique per owner)           |
+| `NoteTag`                | noteId, tagId (unique pair)                                           |
+| `NoteVersion`            | noteId, title snapshot, TipTap JSON snapshot, createdAt               |
+| `ShareLink`              | noteId, secure token hash/lookup, expiry, revocation, view-count data |
 | `PasswordResetChallenge` | user/email ref, protected OTP, expiry, attempts, consumed/resend data |
 
 - Indexes: owner-scoped note list, trash cleanup, tag filter, token expiry, share-link lookup. FTS index over title + extracted TipTap text.
@@ -105,6 +117,7 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - **Transactions required** for: create note + initial version; update note + version; version restore.
 
 ## 10. Content Rules (shared validation)
+
 - Store canonical **TipTap JSON**, never arbitrary HTML. Allowlist of nodes/marks/attrs/nesting only.
 - Title: non-blank, ≤ 200 Unicode code points after trim.
 - Content: ≤ 1,048,576 UTF-8 bytes of canonical serialized JSON; depth ≤ 20 (root = 0); ≤ 10,000 nodes. Empty valid doc is allowed.
@@ -114,22 +127,26 @@ Request flow: `React UI → API client → Express routes/middleware → validat
 - Share links: random unpredictable token, default expiry 7 days, max 30, no non-expiring links. Views deduped 30 min per anonymous browser.
 
 ## 11. Testing Approach
+
 - **Vitest:** unit tests (services, shared Zod schemas, UI logic).
 - **Supertest:** API integration tests against a real PostgreSQL test DB.
 - **Playwright:** end-to-end user flows.
-- Location: colocate unit tests with source (`*.test.ts`); e2e under `frontend/e2e/` *(planned — confirm when scaffolded)*.
+- Location: colocate unit tests with source (`*.test.ts`); e2e under `frontend/e2e/` _(planned — confirm when scaffolded)_.
 - Always cover: ownership isolation (user A can't touch user B's data), validation limits, transaction rollback, token reuse, expired/revoked share links.
 - Spec-driven (OpenSpec): implement one approved task at a time. The tester derives cases from `docs/FRS.md` bullets during `/opsx:apply`. Verify against those criteria.
 
 ## 12. Shared Packages (`packages/shared`)
+
 Planned contents (not yet created):
+
 - Zod schemas for all request/response bodies and the TipTap content allowlist
 - TypeScript types inferred from those schemas
 - Validation constants (title/content/depth/node limits, page sizes, OTP/expiry defaults)
 - API response and error-shape types
-It is the **only** place for cross-app contracts. Don't duplicate schemas in `frontend` or `backend`.
+  It is the **only** place for cross-app contracts. Don't duplicate schemas in `frontend` or `backend`.
 
 ## 13. Do NOT Do
+
 - Don't use `@latest`, floating versions, or swap any fixed-stack technology.
 - Don't invent or alter API routes, fields, or status codes outside the approved OpenAPI contract.
 - Don't put business logic in route handlers or React components.
@@ -144,6 +161,7 @@ It is the **only** place for cross-app contracts. Don't duplicate schemas in `fr
 - Don't commit `.code-review-graph/`. Use the code-review-graph MCP in VS Code for structure questions, then read the source it names.
 
 ## 14. Change workflow
-`/opsx:propose` creates the change. `/opsx:apply` implements it and starts the `tester` agent once the FRS bullets and contract are known. `/opsx:update` revises artifacts. `/opsx:sync` merges delta specs. `/opsx:archive` finishes the change. `/opsx:explore` does not implement.
+
+`/opsx:propose` creates the change. `/opsx:apply` implements it and starts the `tester` agent once the FRS bullets and contract are known. `/opsx:update` revises artifacts. A small update edits the existing delta (`## ADDED`, `## MODIFIED`, or `## REMOVED Requirements`) and does not add a new spec file or another ticket. `/opsx:sync` merges that delta into the existing main spec. `/opsx:archive` finishes the change. `/opsx:explore` does not implement.
 
 One delta spec unless a capability is independently deliverable. Artifact length is in `openspec/config.yaml`. The `reviewer` agent writes `review-log.md` before archive or `/pr`. Open Critical or High findings block archive.
