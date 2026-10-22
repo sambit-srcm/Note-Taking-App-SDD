@@ -18,6 +18,7 @@ Local development setup for the note-taking app (pnpm workspaces monorepo).
 
 ```bash
 pnpm install    # use --frozen-lockfile in CI; also runs prisma generate for backend
+                # installs Husky. Commits run lint-staged, then Commitlint.
 ```
 
 ## Environment
