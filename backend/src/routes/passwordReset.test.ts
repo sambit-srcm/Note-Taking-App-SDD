@@ -77,9 +77,10 @@ function fakeService(clock: { now: number }) {
 }
 
 type Fake = ReturnType<typeof fakeService>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const build = (svc: Fake) =>
-  createApp({ authService: {} as never, passwordResetService: svc } as any);
+  createApp({ authService: {} as never, passwordResetService: svc } as unknown as Parameters<
+    typeof createApp
+  >[0]);
 
 let logs: string[];
 let clock: { now: number };
