@@ -39,7 +39,7 @@ Allowed without a prompt: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typechec
 - Prefer the code-review-graph MCP over broad file reads; read only the files and lines it names.
 - Delegate wide searches to the Explore agent so file dumps stay out of the main context.
 - One approved task per session. Use the `engineer`, `tester`, and `reviewer` agents in `.claude/agents/`.
-- Drive changes with `/opsx:propose`, `/opsx:apply`, `/opsx:update`, `/opsx:sync`, and `/opsx:archive`. Do not use `/spec`, `/plan`, `/tasks`, or `/implement` as the planning path.
+- Drive changes with `/opsx:propose`, `/opsx:apply`, `/opsx:update`, `/opsx:sync`, and `/opsx:archive`. Command text is the short file under `.claude/commands/opsx/`.
 - On `/opsx:apply`, start the `tester` agent in parallel once the in-scope `docs/FRS.md` bullets and the contract under test are known. The tester owns those tests.
 - Before archive or `/pr`, run the `reviewer` agent. It appends a verdict to `openspec/changes/<name>/review-log.md`. Do not archive with an open Critical or High finding.
 - Keep proposals, specs, designs, plans, and reviews short. One delta spec per change unless a capability must be implemented and verified on its own. Rules live in `openspec/config.yaml`.

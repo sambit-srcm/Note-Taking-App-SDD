@@ -1,8 +1,7 @@
 schema: spec-driven
 
 context: |
-  Plan and implement through OpenSpec: /opsx:propose, /opsx:apply, /opsx:update, /opsx:sync, /opsx:archive.
-  /opsx:propose creates the change. Do not drive work through /spec, /plan, /tasks, or /implement.
+  Plan and implement through /opsx:propose, /opsx:apply, /opsx:update, /opsx:sync, /opsx:archive.
   Acceptance criteria live in docs/FRS.md as FRS-<AREA>-<NNN> bullets. Delta specs restate only the behavior this change adds or changes.
   The approved OpenAPI contract wins over invented routes or status codes.
   During /opsx:apply, the tester agent writes tests from those FRS bullets in parallel with implementation when the contract is known. The reviewer agent records a verdict in the change's review-log.md before archive or PR.

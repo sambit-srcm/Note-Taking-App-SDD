@@ -1,6 +1,6 @@
 # Session context: AB-1001 (change `ab-1001-project-setup`)
 
-Resume with `/clear`, then `/implement ab-1001-project-setup`. Change dir: `openspec/changes/ab-1001-project-setup/` (proposal, specs, design, plan, tasks).
+Resume with `/clear`, then `/opsx:apply ab-1001-project-setup`. Change dir: `openspec/changes/ab-1001-project-setup/` (proposal, specs, design, plan, tasks).
 
 ## Rules in force
 - Run everything under Node 22: `fnm exec --using=22 pnpm ...` (shell default is Node 26).
