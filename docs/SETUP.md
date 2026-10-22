@@ -18,8 +18,30 @@ Local development setup for the note-taking app (pnpm workspaces monorepo).
 
 ```bash
 pnpm install    # use --frozen-lockfile in CI; also runs prisma generate for backend
-                # installs Husky. Commits run lint-staged, then Commitlint.
 ```
+
+`pnpm install` runs the `prepare` script, which registers Husky. No extra hook install is required.
+
+## Git hooks
+
+After install, every commit runs two checks:
+
+| Hook | Command | What it checks |
+|---|---|---|
+| pre-commit | `pnpm exec lint-staged` | ESLint (`--max-warnings 0`) and Prettier on staged files |
+| commit-msg | `pnpm exec commitlint --edit` | [Conventional Commits](https://www.conventionalcommits.org/), subject at most 72 characters, no trailing period |
+
+A commit that fails either check is not created. Fix the reported files or the message and commit again. Full `pnpm lint`, `pnpm test`, and `pnpm build` still run in GitHub Actions; the hooks only cover the staged files and the message.
+
+Example:
+
+```text
+feat(notes): add note create and update
+```
+
+## Dependabot
+
+`.github/dependabot.yml` is already in the repo. After it is on `development`, GitHub opens weekly pull requests for npm and GitHub Actions updates. Nothing else is installed locally for that.
 
 ## Environment
 
