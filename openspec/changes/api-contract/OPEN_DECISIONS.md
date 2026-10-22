@@ -36,6 +36,17 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **Implemented in AB-1003:** `POST /auth/password-reset/request` (204/422/429) and `/confirm` (204/401/422/429) are no longer `x-proposed`. `otp` is exactly 6 digits (`passwordResetConfirmSchema`); the OTP is logged to the console only when `NODE_ENV=development`. Env: `OTP_SECRET` (min 32 chars, `change-me` placeholder rejected in production) and `RESET_{REQUEST,CONFIRM}_RATE_LIMIT_{MAX,WINDOW_SECONDS}`.
 - **Rate limits (reset):** request 5/hour, confirm 10 per 15 min, per IP and per normalized email; fixed 60 s per-account resend cooldown; 5 attempts per OTP. Defaults configurable via env.
 
+## Resolved for AB-1004 (user-approved 2026-10-22, "approve all" of the recommendations)
+- **OPEN-13 (baseline):** nodes `doc`, `paragraph`, `text`, `heading` (level 1 to 3), `bulletList`, `orderedList`, `listItem`, `blockquote`, `codeBlock`, `hardBreak`, `horizontalRule`; marks `bold`, `italic`, `strike`, `code`, `link` (`href` http, https, mailto). Lives in `packages/shared`.
+- **OPEN-6:** editing a trashed note returns `409 CONFLICT`. The owner can still read it.
+- **Oversized body:** `413 PAYLOAD_TOO_LARGE` on note routes only (cap 1 MiB + 64 KiB envelope). Malformed JSON stays `422`. Auth routes keep `422` for oversized bodies.
+- **Scope:** `GET /notes` ships with `page`, `pageSize`, `trash` only; sort and tag filters are AB-1005. Notes return `tags: []` until AB-1005/1006.
+- **Unknown list query keys** (`sort`, `tag`, `q`) are ignored, not rejected, until AB-1005 defines them.
+- **Rate limit:** `POST`/`PATCH` notes 60 per 60 s, per IP and per user (`NOTE_WRITE_RATE_LIMIT_*`).
+- **Error codes:** adds `PAYLOAD_TOO_LARGE` to the provisional set.
+- **Other:** non-UUID `noteId` returns `422`. Trash and restore keep `updatedAt`. Restore and the trash list use a 30-day window from `deletedAt`; after it, restore returns `404`.
+- **Implemented in AB-1004:** the six note operations are no longer `x-proposed`.
+
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.
 - Status `413` and body cap: FRS/SDS give no numeric HTTP cap beyond "1 MiB + bounded envelope"; the number is a `/plan` item.
