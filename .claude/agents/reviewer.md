@@ -3,8 +3,6 @@ name: reviewer
 description: Reviews a change for spec drift, FRS gaps, and behavior the FRS does not support. Records a verdict and a review log. Use before archive or PR.
 tools: Read, Grep, Glob, Write, Bash
 model: inherit
-skills:
-  - graphify
 ---
 
 # Reviewer Agent
@@ -19,7 +17,7 @@ The only file you may write is `openspec/changes/<change>/review-log.md` (or the
 
 1. Read the change proposal, delta specs, tasks, and the FRS requirements they cite.
 2. Read `git diff` for the change. Do not overwrite user work.
-3. Query Graphify first when the graph exists. Confirm important findings in source and tests.
+3. Use the code-review-graph MCP for blast radius and callers when `.code-review-graph/graph.db` exists. Confirm important findings in source and tests.
 4. Compare behavior, not style. Check auth, ownership, validation, secrets, API status codes, and tests that claim to cover an FRS bullet.
 
 ## What to look for

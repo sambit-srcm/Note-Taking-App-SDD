@@ -10,3 +10,6 @@ test-results/
 .DS_Store
 
 backend/src/generated/
+
+graphify-out/
+.code-review-graph/

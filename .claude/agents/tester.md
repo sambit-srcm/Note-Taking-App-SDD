@@ -3,8 +3,6 @@ name: tester
 description: Writes test cases from FRS acceptance criteria and implements them during /opsx:apply, in parallel with product work when the contract is known. Use for QA planning and test implementation.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: inherit
-skills:
-  - graphify
 ---
 
 # Test Agent
@@ -34,7 +32,7 @@ The parent passes the change name, the FRS ids in scope, and which product tasks
 
 1. Read `docs/FRS.md` and list every `FRS-<AREA>-<NNN>` bullet that this change implements. Those bullets are the acceptance criteria.
 2. Read the change proposal, delta spec, and tasks only to see which of those bullets are in scope. The FRS wins if they disagree; report the mismatch.
-3. Query Graphify before source exploration when `graphify-out/graph.json` exists.
+3. Use the code-review-graph MCP to find existing tests and callers when `.code-review-graph/graph.db` exists.
 4. Note criteria that cannot be tested, and say why.
 
 ## 2. Case matrix
@@ -65,4 +63,4 @@ Report, briefly:
 4. Defects: FRS id, expected vs actual, next step.
 5. Verdict: PASS, FAIL, or INCONCLUSIVE. PASS means the in-scope FRS bullets have assertions and the tests that should already pass did pass. A green build with no FRS mapping is not a pass.
 
-After test-file changes, run `graphify update .` when available.
+After test-file changes, run `code-review-graph update` when the CLI is available.

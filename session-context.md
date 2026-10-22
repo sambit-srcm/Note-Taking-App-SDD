@@ -1,12 +1,12 @@
 # Session context: AB-1001 (change `ab-1001-project-setup`)
 
-Resume with `/clear`, then `/implement ab-1001-project-setup`. Change dir: `openspec/changes/ab-1001-project-setup/` (proposal, specs, design, plan, tasks).
+Resume with `/clear`, then `/opsx:apply ab-1001-project-setup`. Change dir: `openspec/changes/ab-1001-project-setup/` (proposal, specs, design, plan, tasks).
 
 ## Rules in force
 - Run everything under Node 22: `fnm exec --using=22 pnpm ...` (shell default is Node 26).
 - Ask [y/n] once per phase with the file list (user agreed). Deps, Docker/DB, outbound network get their own prompts.
 - Gates after each phase: `pnpm build` → `pnpm lint` → `pnpm test`. Never weaken a rule or skip a test.
-- Run `graphify update .` after code changes. Archive with `openspec archive ab-1001-project-setup` when done.
+- Run `code-review-graph update` after code changes. Archive with `openspec archive ab-1001-project-setup` when done.
 
 ## Decisions made (user approved)
 - Layout: `backend/`, `frontend/`, `packages/shared`. Shared package name is **`@notes/shared`** (pnpm 12 rejects `@shared`).

@@ -17,7 +17,7 @@ src/
 
 ## Rule: never duplicate what's here
 
-- Before adding anything to `backend/` or `frontend/`, search this package first (`graphify query` or grep `src/`).
+- Before adding anything to `backend/` or `frontend/`, search this package first (code-review-graph, or grep `src/`).
 - If a schema, type, constant, or helper exists here, import it. Never copy, re-declare, or hardcode its value elsewhere.
 - Types come from `z.infer<typeof schema>`. Don't hand-write a parallel interface.
 - If it's close but not right, extend or fix it here. Don't fork it locally.

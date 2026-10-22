@@ -7,7 +7,6 @@ Inputs: proposal.md, specs/{service-health,runtime-configuration}, design.md, ta
 
 - No `package.json`, no source, no tests. `packages/shared/` holds only `CLAUDE.md` (empty package), so there is nothing to reuse and no schema to duplicate.
 - `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `packages/shared/CLAUDE.md` exist and define the layout, the `@notes/shared` alias, and per-package commands.
-- Graphify has no code nodes; it is docs-only.
 - Local toolchain: **Node v26.10.0** (project requires **22**), pnpm 12.11.2 via Corepack, Docker 29.2.1.
 
 ## 1. Decisions needing sign-off
