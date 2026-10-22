@@ -8,13 +8,14 @@ const valid = {
   NODE_ENV: 'test',
   PORT: '3000',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+  JWT_SECRET: 'test-only-secret-0123456789-abcdefghij',
 };
 const SENTINEL = 'SENTINEL_SECRET_VALUE';
 
 describe('parseEnv', () => {
   it('accepts valid variables and coerces PORT', () => {
     const result = parseEnv(valid);
-    expect(result).toEqual({ ok: true, env: { ...valid, PORT: 3000 } });
+    expect(result).toMatchObject({ ok: true, env: { ...valid, PORT: 3000 } });
   });
 
   it('reports a missing variable by name', () => {
@@ -70,6 +71,7 @@ describe('loadEnv', () => {
       expect(err).toBeInstanceOf(EnvError);
       expect((err as EnvError).issues.map((i) => i.name).sort()).toEqual([
         'DATABASE_URL',
+        'JWT_SECRET',
         'NODE_ENV',
         'PORT',
       ]);

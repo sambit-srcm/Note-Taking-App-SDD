@@ -1,4 +1,4 @@
-// Models and migrations arrive with AB-1002+. Schema changes go through Prisma migrations only.
+// Schema changes go through Prisma migrations only.
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -6,4 +6,32 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String
+  emailNormalized String   @unique
+  passwordHash    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  refreshTokenSessions RefreshTokenSession[]
+}
+
+model RefreshTokenSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  rotatedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }

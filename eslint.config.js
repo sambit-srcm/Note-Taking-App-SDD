@@ -11,6 +11,7 @@ export default defineConfig([
     '**/node_modules/**',
     '**/playwright-report/**',
     '.code-review-graph/**',
+    '.venv/**',
     '**/generated/**',
   ]),
   js.configs.recommended,
