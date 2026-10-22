@@ -31,13 +31,13 @@ describe('errorHandler', () => {
   });
 
   it('maps an AppError to its status, code and optional fields', async () => {
-    const err = new AppError(422, 'VALIDATION_ERROR', 'bad input', [{ name: 'title' }]);
+    const err = new AppError(422, 'VALIDATION_ERROR', 'bad input', [{ path: 'title', message: 'The value is not valid.' }]);
     const res = await request(appThrowing(err)).get('/boom');
     expect(res.status).toBe(422);
     expect(errorResponseSchema.parse(res.body).error).toEqual({
       code: 'VALIDATION_ERROR',
       message: 'bad input',
-      fields: [{ name: 'title' }],
+      fields: [{ path: 'title', message: 'The value is not valid.' }],
     });
   });
 });

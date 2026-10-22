@@ -1,5 +1,5 @@
 # Sources: docs/FRS.md, docs/SDS.md §4-5. FRS/SDS define NO paths, methods or field names;
-# every route here is PROPOSED (x-proposed: true) and tagged with the FRS ID it satisfies.
+# every route here is PROPOSED (x-proposed: true) except /auth/register, /login, /refresh, /logout (approved for AB-1002), and tagged with the FRS ID it satisfies.
 # Items needing a decision are marked "OPEN-n" and listed in openspec/changes/api-contract/OPEN_DECISIONS.md.
 openapi: 3.0.3
 info:
@@ -35,19 +35,17 @@ paths:
     post:
       tags: [Auth]
       summary: Register (FRS-AUTH-001)
-      x-proposed: true
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }   # duplicate normalized email (OPEN-9: enumeration vs FRS-AUTH-001)
+        '409': { $ref: '#/components/responses/Conflict' }   # duplicate normalized email (OPEN-9 resolved)
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/RateLimited' }
   /auth/login:
     post:
       tags: [Auth]
       summary: Login (FRS-AUTH-002)
-      x-proposed: true
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
       responses:
@@ -59,8 +57,7 @@ paths:
     post:
       tags: [Auth]
       summary: Rotate refresh token (FRS-AUTH-003)
-      description: Reuse of a rotated token revokes the token family and returns 401 (OPEN-1 transport).
-      x-proposed: true
+      description: Reuse of a rotated token revokes the token family and returns 401 (OPEN-1 resolved, JSON body).
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' } } } }
       responses:
@@ -72,7 +69,7 @@ paths:
     post:
       tags: [Auth]
       summary: Revoke current refresh-token session (FRS-AUTH-003)
-      x-proposed: true
+      description: "Requires a valid access token (bearerAuth) and the refresh token in the body. 204 when the caller's own session is revoked (idempotent); 401 for an unknown or foreign token."
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' } } } }
       responses:
         '204': { description: Logged out }
@@ -396,9 +393,9 @@ components:
           properties:
             code: { type: string, example: VALIDATION_ERROR }   # OPEN-11: code catalogue
             message: { type: string }
-            fields: { type: array, items: { type: object, properties: { path: { type: string }, message: { type: string } } } }   # shape of items OPEN-11
+            fields: { type: array, items: { type: object, required: [path, message], properties: { path: { type: string }, message: { type: string, description: Fixed message; never echoes submitted input } } } }   # auth subset resolved (OPEN-11)
         requestId: { type: string }
-    Password: { type: string, writeOnly: true }   # OPEN-12: password policy not defined in FRS/SDS
+    Password: { type: string, writeOnly: true, minLength: 1, maxLength: 128, description: Register enforces 12-128 characters with no composition rules (OPEN-12 resolved); login accepts 1-128 }
     Credentials:
       type: object
       required: [email, password]
@@ -407,11 +404,10 @@ components:
         password: { $ref: '#/components/schemas/Password' }
     User:
       type: object
-      required: [id, email, createdAt]
+      required: [id, email]
       properties:
         id: { type: string, format: uuid }
         email: { type: string, format: email }
-        createdAt: { type: string, format: date-time }
     AuthTokens:
       type: object
       required: [accessToken, refreshToken]
