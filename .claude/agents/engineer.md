@@ -28,7 +28,7 @@ If the specification or task approval is missing, stop and request clarification
 3. Read the relevant source and tests; do not rely on graph output alone.
 4. Implement only the assigned task.
 5. Follow existing architecture, strict TypeScript conventions, validation patterns, and database practices.
-6. Add or update tests for the acceptance criteria, including relevant failure and authorization cases.
+6. During `/opsx:apply`, leave FRS acceptance tests to the `tester` agent. Implement the product behavior those tests assert. Do not weaken or delete them. Add a test yourself only for a branch the tester is not covering.
 7. Run applicable tests, lint, type checks, and build commands.
 8. Refresh Graphify using `graphify update .` after code changes.
 9. Review the diff for scope creep, accidental changes, secrets, and unrelated modifications.

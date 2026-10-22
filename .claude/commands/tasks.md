@@ -1,18 +1,5 @@
-Break down into tasks for: $ARGUMENTS
+Do not write a task list from this command.
 
-Steps:
-1.Read: openspec/changes/$ARGUMENTS/proposal.md
-2.Read: openspec/changes/$ARGUMENTS/plan.md
-3.Generate sequenced task checklist:
-   -Phase 1: Foundation (shared types, DB migrations)
-   -Phase 2: Core implementation [mark PARALLEL tasks]
-   -Phase 3: Integration
-   -Phase 4: Tests (one test per spec scenario)
-   -Checkpoint after each phase:
-     *pnpm build → 0 errors
-     *pnpm lint --max-warnings 0
-     *pnpm test → all green
-4.Save to: openspec/changes/$ARGUMENTS/tasks.md
-5.Wait for approval
+Tasks are an OpenSpec artifact. Update them with `/opsx:update $ARGUMENTS`, or create the change with `/opsx:propose`.
 
-Format: /tasks AB-1042-user-registration
+Mark slices that can run beside test writing as parallel. Stop after naming the command.
