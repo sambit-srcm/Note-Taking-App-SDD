@@ -147,7 +147,10 @@ export function createNoteService({ prisma, now = () => new Date() }: Deps): Not
       return toNote(row);
     },
 
-    async listNotes(ownerId, { page, pageSize, trash }) {
+    async listNotes(ownerId, { page, pageSize, trash, sort, order, tagIds }) {
+      // Interim until AB-1006 adds Tag/NoteTag (task 4.1 replaces this): no tag can exist, so an
+      // AND filter on any tag matches nothing. Never fall through to the unfiltered list.
+      if (tagIds.length > 0) return { items: [], pagination: { page, pageSize, total: 0 } };
       const where: Prisma.NoteWhereInput = {
         ownerId,
         deletedAt: trash ? { gt: cutoff() } : null,
@@ -156,7 +159,8 @@ export function createNoteService({ prisma, now = () => new Date() }: Deps): Not
         prisma.note.count({ where }),
         prisma.note.findMany({
           where,
-          orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+          // `sort` is a closed enum, so user input never names a column. `id` makes the order total.
+          orderBy: [{ [sort]: order }, { id: 'asc' }],
           skip: (page - 1) * pageSize,
           take: pageSize,
           select: { id: true, title: true, updatedAt: true, deletedAt: true },

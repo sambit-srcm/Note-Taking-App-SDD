@@ -47,6 +47,13 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **Other:** non-UUID `noteId` returns `422`. Trash and restore keep `updatedAt`. Restore and the trash list use a 30-day window from `deletedAt`; after it, restore returns `404`.
 - **Implemented in AB-1004:** the six note operations are no longer `x-proposed`.
 
+## Resolved for AB-1005 (user-approved 2026-10-22, "approve all five recommendations")
+- **OPEN-4:** `sort` is `updatedAt|createdAt|title`, `order` is `asc|desc`; default `updatedAt desc`. `id` ascending is always the final tie-breaker. `title` sorts with the plain, case-sensitive database collation.
+- **OPEN-5:** invalid `page`, `pageSize`, `sort`, `order`, or `tagIds` returns `422`; nothing is normalized.
+- **`tagIds`:** comma-separated UUIDs, at most 10, duplicates collapse, AND semantics, empty or absent means no filter.
+- **Index:** `Note(ownerId, deletedAt, createdAt DESC, id)` added by migration.
+- **Sequencing:** sort and pagination ship in AB-1005 first. The tag filter and real `tags` on list items wait for AB-1006 (`Tag`/`NoteTag` do not exist yet).
+
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.
 - Status `413` and body cap: FRS/SDS give no numeric HTTP cap beyond "1 MiB + bounded envelope"; the number is a `/plan` item.

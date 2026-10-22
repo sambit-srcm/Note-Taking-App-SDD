@@ -6,7 +6,7 @@
 //   createNoteService({ prisma, now? }) from ./service.js, returning
 //     createNote(ownerId, {title, content}) / getNote(ownerId, id) /
 //     updateNote(ownerId, id, {title?, content?}) / trashNote(ownerId, id): Promise<void> /
-//     restoreNote(ownerId, id) / listNotes(ownerId, {page, pageSize, trash})
+//     restoreNote(ownerId, id) / listNotes(ownerId, {page, pageSize, trash, sort, order, tagIds})
 //   Note result = {id,title,content,tags:[],createdAt,updatedAt,deletedAt}; list result =
 //     {items:[{id,title,tags,updatedAt,deletedAt}], pagination:{page,pageSize,total}}.
 //   Misses (missing, foreign, expired restore) throw NotFoundError; editing a trashed note throws
@@ -39,6 +39,24 @@ const service = createNoteService({ prisma, now } as never);
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const doc = (...text: string[]) => ({ type: 'doc', content: text.map(para) }) as TipTapDoc;
 const raw = (d: unknown) => d as TipTapDoc;
+// listNotes receives input already parsed by noteListQuerySchema, so every field is present.
+const q = (o: Partial<ListQuery> = {}): ListQuery => ({
+  page: 1,
+  pageSize: 20,
+  trash: false,
+  sort: 'updatedAt',
+  order: 'desc',
+  tagIds: [],
+  ...o,
+});
+type ListQuery = {
+  page: number;
+  pageSize: number;
+  trash: boolean;
+  sort: 'updatedAt' | 'createdAt' | 'title';
+  order: 'asc' | 'desc';
+  tagIds: string[];
+};
 
 const createdUsers: string[] = [];
 async function newUser() {
@@ -181,12 +199,14 @@ describe('getNote and ownership (FRS-NOTE-002)', () => {
     const dead = await service.createNote(a, { title: 'dead', content: doc('x') });
     await service.trashNote(a, dead.id);
     for (const trash of [false, true]) {
-      const r = await service.listNotes(b, { page: 1, pageSize: 20, trash });
+      const r = await service.listNotes(b, q({ trash }));
       expect(r.items).toEqual([]);
       expect(r.pagination.total).toBe(0);
     }
     expect(
-      (await service.listNotes(a, { page: 1, pageSize: 20, trash: false })).items.map((i) => i.id),
+      (await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }))).items.map(
+        (i) => i.id,
+      ),
     ).toEqual([live.id]);
   });
 });
@@ -335,8 +355,10 @@ describe('trashNote and restoreNote (FRS-NOTE-003)', () => {
     const a = await newUser();
     const n = await service.createNote(a, { title: 'T', content: doc('x') });
     await service.trashNote(a, n.id);
-    expect((await service.listNotes(a, { page: 1, pageSize: 20, trash: false })).items).toEqual([]);
-    const trash = await service.listNotes(a, { page: 1, pageSize: 20, trash: true });
+    expect((await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }))).items).toEqual(
+      [],
+    );
+    const trash = await service.listNotes(a, q({ page: 1, pageSize: 20, trash: true }));
     expect(trash.items.map((i) => i.id)).toEqual([n.id]);
     expect(trash.items[0]?.deletedAt).toEqual(T0);
   });
@@ -350,9 +372,13 @@ describe('trashNote and restoreNote (FRS-NOTE-003)', () => {
     expect(r.deletedAt).toBeNull();
     expect((await rowOf(n.id))?.deletedAt).toBeNull();
     expect(
-      (await service.listNotes(a, { page: 1, pageSize: 20, trash: false })).items.map((i) => i.id),
+      (await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }))).items.map(
+        (i) => i.id,
+      ),
     ).toEqual([n.id]);
-    expect((await service.listNotes(a, { page: 1, pageSize: 20, trash: true })).items).toEqual([]);
+    expect((await service.listNotes(a, q({ page: 1, pageSize: 20, trash: true }))).items).toEqual(
+      [],
+    );
   });
 
   it('restore just inside the window (30 days minus 1 ms) works', async () => {
@@ -388,7 +414,7 @@ describe('trashNote and restoreNote (FRS-NOTE-003)', () => {
     clock.t = new Date(T0.getTime() + 20 * DAY);
     await service.trashNote(a, recent.id);
     clock.t = new Date(T0.getTime() + 31 * DAY);
-    const trash = await service.listNotes(a, { page: 1, pageSize: 20, trash: true });
+    const trash = await service.listNotes(a, q({ page: 1, pageSize: 20, trash: true }));
     expect(trash.items.map((i) => i.id)).toEqual([recent.id]);
     expect(trash.pagination.total).toBe(1);
     expect(await prisma.note.count({ where: { ownerId: a } })).toBe(2);
@@ -430,11 +456,23 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
     title: string,
     updatedAt: Date,
     id: string = randomUUID(),
+    createdAt: Date = updatedAt,
   ) {
     return prisma.note.create({
-      data: { id, ownerId, title, content: doc(title) as never, searchText: title, updatedAt },
+      data: {
+        id,
+        ownerId,
+        title,
+        content: doc(title) as never,
+        searchText: title,
+        updatedAt,
+        createdAt,
+      },
     });
   }
+  const ids = (r: { items: { id: string }[] }) => r.items.map((i) => i.id);
+  const idN = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const D = (day: number) => new Date(Date.UTC(2026, 0, day));
 
   it('orders by updatedAt DESC then id', async () => {
     const a = await newUser();
@@ -447,7 +485,7 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
     for (const id of ids) await seedNote(a, id, same, id);
     const newest = await seedNote(a, 'newest', new Date('2026-02-02T00:00:00Z'));
     const oldest = await seedNote(a, 'oldest', new Date('2026-01-01T00:00:00Z'));
-    const r = await service.listNotes(a, { page: 1, pageSize: 20, trash: false });
+    const r = await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }));
     expect(r.items.map((i) => i.id)).toEqual([newest.id, ...[...ids].sort(), oldest.id]);
     expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 5 });
   });
@@ -457,10 +495,10 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
     const seeded = [];
     for (let i = 0; i < 5; i++) seeded.push(await seedNote(a, `n${i}`, new Date(2026, 0, 1 + i)));
     const expected = seeded.map((n) => n.id).reverse();
-    const p1 = await service.listNotes(a, { page: 1, pageSize: 2, trash: false });
-    const p2 = await service.listNotes(a, { page: 2, pageSize: 2, trash: false });
-    const p3 = await service.listNotes(a, { page: 3, pageSize: 2, trash: false });
-    const p4 = await service.listNotes(a, { page: 4, pageSize: 2, trash: false });
+    const p1 = await service.listNotes(a, q({ page: 1, pageSize: 2, trash: false }));
+    const p2 = await service.listNotes(a, q({ page: 2, pageSize: 2, trash: false }));
+    const p3 = await service.listNotes(a, q({ page: 3, pageSize: 2, trash: false }));
+    const p4 = await service.listNotes(a, q({ page: 4, pageSize: 2, trash: false }));
     expect(p1.items.map((i) => i.id)).toEqual(expected.slice(0, 2));
     expect(p2.items.map((i) => i.id)).toEqual(expected.slice(2, 4));
     expect(p3.items.map((i) => i.id)).toEqual(expected.slice(4));
@@ -472,7 +510,7 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
   it('items are summaries with empty tags and no content', async () => {
     const a = await newUser();
     await service.createNote(a, { title: 'Sum', content: doc('x') });
-    const item = (await service.listNotes(a, { page: 1, pageSize: 20, trash: false })).items[0];
+    const item = (await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }))).items[0];
     expect(item?.title).toBe('Sum');
     expect(item?.tags).toEqual([]);
     expect(item?.deletedAt).toBeNull();
@@ -484,8 +522,250 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
     const keep = await service.createNote(a, { title: 'keep', content: doc('x') });
     const gone = await service.createNote(a, { title: 'gone', content: doc('x') });
     await service.trashNote(a, gone.id);
-    const r = await service.listNotes(a, { page: 1, pageSize: 20, trash: false });
+    const r = await service.listNotes(a, q({ page: 1, pageSize: 20, trash: false }));
     expect(r.items.map((i) => i.id)).toEqual([keep.id]);
     expect(r.pagination.total).toBe(1);
+  });
+
+  // FRS-NOTE-004 sorting. id ASC is always the last tie-breaker, whatever the direction.
+  describe('sorting', () => {
+    it.each([
+      ['updatedAt', 'desc'],
+      ['updatedAt', 'asc'],
+      ['createdAt', 'desc'],
+      ['createdAt', 'asc'],
+      ['title', 'asc'],
+      ['title', 'desc'],
+    ] as const)('orders by %s %s', async (sort, order) => {
+      const a = await newUser();
+      // updatedAt and createdAt run in opposite directions so a wrong column is caught.
+      const n1 = await seedNote(a, 'bravo', D(1), idN(1), D(30));
+      const n2 = await seedNote(a, 'alpha', D(2), idN(2), D(20));
+      const n3 = await seedNote(a, 'charlie', D(3), idN(3), D(10));
+      const expected = {
+        updatedAt: [n1, n2, n3],
+        createdAt: [n3, n2, n1],
+        title: [n2, n1, n3],
+      }[sort].map((n) => n.id);
+      if (order === 'desc') expected.reverse();
+      expect(ids(await service.listNotes(a, q({ sort, order })))).toEqual(expected);
+    });
+
+    it('defaults (updatedAt desc) match the explicit form', async () => {
+      const a = await newUser();
+      await seedNote(a, 'x', D(1));
+      await seedNote(a, 'y', D(2));
+      await seedNote(a, 'z', D(3));
+      expect(ids(await service.listNotes(a, q()))).toEqual(
+        ids(await service.listNotes(a, q({ sort: 'updatedAt', order: 'desc' }))),
+      );
+    });
+
+    it.each(['asc', 'desc'] as const)(
+      'equal updatedAt ties are ordered by id ASC with order=%s',
+      async (order) => {
+        const a = await newUser();
+        for (const n of [3, 1, 2]) await seedNote(a, `t${n}`, D(5), idN(n));
+        expect(ids(await service.listNotes(a, q({ sort: 'updatedAt', order })))).toEqual([
+          idN(1),
+          idN(2),
+          idN(3),
+        ]);
+      },
+    );
+
+    it.each(['asc', 'desc'] as const)(
+      'equal createdAt ties are ordered by id ASC with order=%s',
+      async (order) => {
+        const a = await newUser();
+        for (const n of [2, 3, 1]) await seedNote(a, `t${n}`, D(n), idN(n), D(7));
+        expect(ids(await service.listNotes(a, q({ sort: 'createdAt', order })))).toEqual([
+          idN(1),
+          idN(2),
+          idN(3),
+        ]);
+      },
+    );
+
+    it.each(['asc', 'desc'] as const)(
+      'equal title ties are ordered by id ASC with order=%s',
+      async (order) => {
+        const a = await newUser();
+        for (const n of [3, 1, 2]) await seedNote(a, 'same', D(n), idN(n));
+        expect(ids(await service.listNotes(a, q({ sort: 'title', order })))).toEqual([
+          idN(1),
+          idN(2),
+          idN(3),
+        ]);
+      },
+    );
+
+    it('title sort is deterministic and case-sensitive: asc is the reverse of desc for distinct titles', async () => {
+      const a = await newUser();
+      for (const [i, t] of ['apple', 'Apple', 'banana', 'Banana', 'APPLE'].entries())
+        await seedNote(a, t, D(i + 1), idN(i + 1));
+      const asc = ids(await service.listNotes(a, q({ sort: 'title', order: 'asc' })));
+      const desc = ids(await service.listNotes(a, q({ sort: 'title', order: 'desc' })));
+      expect(asc).toHaveLength(5);
+      expect(desc).toEqual([...asc].reverse());
+      // 'apple' and 'Apple' are different titles, never treated as ties broken by id
+      const rows = await prisma.note.findMany({ where: { ownerId: a } });
+      const t = (id: string) => rows.find((r) => r.id === id)?.title;
+      expect(new Set(asc.map(t)).size).toBe(5);
+    });
+
+    it('repeated requests return the identical order', async () => {
+      const a = await newUser();
+      for (let i = 1; i <= 6; i++) await seedNote(a, i % 2 ? 'odd' : 'even', D(1), idN(i));
+      const first = ids(await service.listNotes(a, q({ sort: 'title', order: 'desc' })));
+      for (let k = 0; k < 3; k++)
+        expect(ids(await service.listNotes(a, q({ sort: 'title', order: 'desc' })))).toEqual(first);
+    });
+
+    it('sorting applies within the trash view too', async () => {
+      const a = await newUser();
+      const n1 = await seedNote(a, 'b', D(1));
+      const n2 = await seedNote(a, 'a', D(2));
+      await service.trashNote(a, n1.id);
+      await service.trashNote(a, n2.id);
+      expect(
+        ids(await service.listNotes(a, q({ trash: true, sort: 'title', order: 'asc' }))),
+      ).toEqual([n2.id, n1.id]);
+    });
+  });
+
+  // INTERIM (AB-1005, review R1): until AB-1006 adds Tag/NoteTag, any non-empty tagIds yields an
+  // empty page. Task 4.1 replaces these interim cases with real tag-filter tests.
+  describe('tagIds interim behavior (R1)', () => {
+    it('empty tagIds returns the notes; one or two tag ids return an empty page with total 0', async () => {
+      const a = await newUser();
+      const n1 = await seedNote(a, 'one', D(1));
+      const n2 = await seedNote(a, 'two', D(2));
+      const all = await service.listNotes(a, q({ tagIds: [] }));
+      expect(ids(all).sort()).toEqual([n1.id, n2.id].sort());
+      expect(all.pagination.total).toBe(2);
+      for (const tagIds of [[randomUUID()], [randomUUID(), randomUUID()]]) {
+        const r = await service.listNotes(a, q({ tagIds }));
+        expect(r.items).toEqual([]);
+        expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
+      }
+    });
+
+    it('keeps the requested page and pageSize, and applies to trash lists too', async () => {
+      const a = await newUser();
+      const n = await seedNote(a, 'one', D(1));
+      await service.trashNote(a, n.id);
+      const r = await service.listNotes(
+        a,
+        q({ page: 3, pageSize: 5, trash: true, tagIds: [randomUUID()] }),
+      );
+      expect(r.items).toEqual([]);
+      expect(r.pagination).toEqual({ page: 3, pageSize: 5, total: 0 });
+    });
+  });
+
+  describe('pagination (FRS-NOTE-004)', () => {
+    it.each([
+      ['updatedAt', 'desc'],
+      ['updatedAt', 'asc'],
+      ['createdAt', 'asc'],
+      ['title', 'asc'],
+      ['title', 'desc'],
+    ] as const)(
+      'walking every page by %s %s returns each note once, in the full-list order',
+      async (sort, order) => {
+        const a = await newUser();
+        // many ties on every sort key so tie-breaking is exercised across page edges
+        for (let i = 1; i <= 11; i++)
+          await seedNote(a, `title-${i % 3}`, D((i % 4) + 1), idN(i), D((i % 2) + 1));
+        const full = ids(await service.listNotes(a, q({ sort, order, pageSize: 100 })));
+        expect(full).toHaveLength(11);
+        const walked: string[] = [];
+        for (let page = 1; page <= 4; page++) {
+          const r = await service.listNotes(a, q({ sort, order, page, pageSize: 3 }));
+          expect(r.pagination).toEqual({ page, pageSize: 3, total: 11 });
+          walked.push(...ids(r));
+        }
+        expect(new Set(walked).size).toBe(11);
+        expect(walked).toEqual(full);
+      },
+    );
+
+    it('last page holds the remainder; a page past the end is empty with the true total', async () => {
+      const a = await newUser();
+      for (let i = 1; i <= 5; i++) await seedNote(a, `n${i}`, D(i));
+      const last = await service.listNotes(a, q({ page: 3, pageSize: 2 }));
+      expect(last.items).toHaveLength(1);
+      const past = await service.listNotes(a, q({ page: 4, pageSize: 2 }));
+      expect(past.items).toEqual([]);
+      expect(past.pagination).toEqual({ page: 4, pageSize: 2, total: 5 });
+      const far = await service.listNotes(a, q({ page: 1000, pageSize: 100 }));
+      expect(far.items).toEqual([]);
+      expect(far.pagination.total).toBe(5);
+    });
+
+    it('an exact multiple of pageSize leaves no partial last page', async () => {
+      const a = await newUser();
+      for (let i = 1; i <= 4; i++) await seedNote(a, `n${i}`, D(i));
+      expect((await service.listNotes(a, q({ page: 2, pageSize: 2 }))).items).toHaveLength(2);
+      expect((await service.listNotes(a, q({ page: 3, pageSize: 2 }))).items).toEqual([]);
+    });
+
+    it('pageSize 100 returns up to 100 items', async () => {
+      const a = await newUser();
+      await prisma.note.createMany({
+        data: Array.from({ length: 101 }, (_, i) => ({
+          id: idN(i + 1),
+          ownerId: a,
+          title: `n${i}`,
+          content: doc('x') as never,
+          searchText: 'x',
+          updatedAt: D(1),
+        })),
+      });
+      const r = await service.listNotes(a, q({ pageSize: 100 }));
+      expect(r.items).toHaveLength(100);
+      expect(r.pagination).toEqual({ page: 1, pageSize: 100, total: 101 });
+      expect(ids(await service.listNotes(a, q({ page: 2, pageSize: 100 })))).toEqual([idN(101)]);
+    });
+
+    it('empty result: no items and total 0 (live and trash)', async () => {
+      const a = await newUser();
+      for (const trash of [false, true]) {
+        const r = await service.listNotes(a, q({ trash }));
+        expect(r.items).toEqual([]);
+        expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
+      }
+    });
+
+    it('total counts only the owner live notes, not trashed or other owners notes', async () => {
+      const [a, b] = [await newUser(), await newUser()];
+      const live = [await seedNote(a, 'l1', D(1)), await seedNote(a, 'l2', D(2))];
+      const dead = await seedNote(a, 'dead', D(3));
+      await service.trashNote(a, dead.id);
+      for (let i = 0; i < 3; i++) await seedNote(b, `b${i}`, D(i + 1));
+      const r = await service.listNotes(a, q({ pageSize: 1 }));
+      expect(r.pagination).toEqual({ page: 1, pageSize: 1, total: 2 });
+      const t = await service.listNotes(a, q({ trash: true, pageSize: 1 }));
+      expect(t.pagination.total).toBe(1);
+      expect(ids(t)).toEqual([dead.id]);
+      const all = await service.listNotes(a, q());
+      expect(ids(all).sort()).toEqual(live.map((n) => n.id).sort());
+    });
+
+    it('ownership isolation holds for every sort and direction; B total excludes A', async () => {
+      const [a, b] = [await newUser(), await newUser()];
+      for (let i = 1; i <= 4; i++) await seedNote(a, `a${i}`, D(i));
+      const mine = await seedNote(b, 'mine', D(1));
+      for (const sort of ['updatedAt', 'createdAt', 'title'] as const)
+        for (const order of ['asc', 'desc'] as const) {
+          const r = await service.listNotes(b, q({ sort, order, pageSize: 1 }));
+          expect(ids(r)).toEqual([mine.id]);
+          expect(r.pagination.total).toBe(1);
+          const none = await service.listNotes(b, q({ sort, order, page: 2, pageSize: 1 }));
+          expect(none.items).toEqual([]);
+          expect(none.pagination.total).toBe(1);
+        }
+    });
   });
 });

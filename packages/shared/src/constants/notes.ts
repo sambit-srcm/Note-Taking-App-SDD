@@ -5,5 +5,9 @@ export const NOTE_CONTENT_MAX_NODES = 10_000;
 export const NOTE_TRASH_RETENTION_DAYS = 30;
 export const PAGE_SIZE_DEFAULT = 20;
 export const PAGE_SIZE_MAX = 100;
+export const NOTE_SORT_FIELDS = ['updatedAt', 'createdAt', 'title'] as const;
+export const SORT_ORDERS = ['asc', 'desc'] as const;
+/** Most tags one list request may filter by. */
+export const NOTE_TAG_FILTER_MAX = 10;
 /** HTTP body cap for note writes: 1 MiB document plus a bounded envelope. */
 export const NOTE_BODY_MAX_BYTES = NOTE_CONTENT_MAX_BYTES + 64 * 1024;

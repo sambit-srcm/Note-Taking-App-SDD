@@ -117,14 +117,14 @@ paths:
         - { $ref: '#/components/parameters/PageSize' }
         - name: sort
           in: query
-          schema: { type: string, enum: [updatedAt, createdAt, title], default: updatedAt }   # OPEN-4
+          schema: { type: string, enum: [updatedAt, createdAt, title], default: updatedAt }   # OPEN-4 approved for AB-1005; id ASC is the final tie-breaker
         - name: order
           in: query
           schema: { type: string, enum: [asc, desc], default: desc }
         - name: tagIds
           in: query
-          description: Note must have ALL selected tags (AND). Omitted/empty = no filter.
-          schema: { type: array, items: { type: string, format: uuid } }
+          description: "Comma-separated tag UUIDs, max 10, duplicates collapse. Note must have ALL selected tags (AND). Omitted/empty = no filter. x-proposed: filtering ships after AB-1006; until then the value is validated but not applied."
+          schema: { type: array, items: { type: string, format: uuid }, maxItems: 10 }
           style: form
           explode: false
         - name: trash
@@ -134,7 +134,7 @@ paths:
       responses:
         '200': { description: Page of notes, content: { application/json: { schema: { $ref: '#/components/schemas/NoteSummaryPage' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '422': { $ref: '#/components/responses/ValidationError' }   # OPEN-5: reject vs normalize
+        '422': { $ref: '#/components/responses/ValidationError' }   # OPEN-5 approved: reject, never normalize
     post:
       tags: [Notes]
       summary: Create note + initial version atomically (FRS-NOTE-001)
