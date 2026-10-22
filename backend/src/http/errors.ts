@@ -41,3 +41,9 @@ export class RateLimitedError extends AppError {
     super(429, 'RATE_LIMITED', 'Too many requests. Try again later.');
   }
 }
+
+export class PayloadTooLargeError extends AppError {
+  constructor() {
+    super(413, 'PAYLOAD_TOO_LARGE', 'The request body is too large.');
+  }
+}

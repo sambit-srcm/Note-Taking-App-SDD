@@ -46,6 +46,15 @@ export function resetRateLimitConfigFromEnv(env: Env): ResetRateLimitConfig {
   };
 }
 
+export function noteWriteLimitFromEnv(env: Env): LimitRule {
+  return {
+    max: env.NOTE_WRITE_RATE_LIMIT_MAX,
+    windowMs: env.NOTE_WRITE_RATE_LIMIT_WINDOW_SECONDS * 1000,
+  };
+}
+
+export const DEFAULT_NOTE_WRITE_LIMIT: LimitRule = { max: 60, windowMs: 60_000 };
+
 export const DEFAULT_RESET_RATE_LIMITS: ResetRateLimitConfig = {
   request: { max: 5, windowMs: 3_600_000 },
   confirm: { max: 10, windowMs: 900_000 },
@@ -113,4 +122,12 @@ export function createResetLimiters(config: ResetRateLimitConfig): {
     request: [build(config.request, ip), build(config.request, email)],
     confirm: [build(config.confirm, ip), build(config.confirm, email)],
   };
+}
+
+/** Note create/update writes: one counter per IP and one per authenticated user. Mount after auth. */
+export function createNoteWriteLimiters(rule: LimitRule): RequestHandler[] {
+  return [
+    build(rule, (req) => ipKeyGenerator(req.ip ?? '')),
+    build(rule, (req) => (req.userId === undefined ? undefined : `user:${req.userId}`)),
+  ];
 }

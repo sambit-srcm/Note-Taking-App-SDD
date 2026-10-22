@@ -2,8 +2,10 @@ import { randomBytes } from 'node:crypto';
 import express from 'express';
 import type { PasswordResetService } from './auth/passwordReset.js';
 import {
+  DEFAULT_NOTE_WRITE_LIMIT,
   DEFAULT_RATE_LIMITS,
   DEFAULT_RESET_RATE_LIMITS,
+  type LimitRule,
   type RateLimitConfig,
   type ResetRateLimitConfig,
 } from './auth/rateLimit.js';
@@ -11,8 +13,10 @@ import type { AuthService } from './auth/service.js';
 import { errorHandler } from './http/errorHandler.js';
 import { NotFoundError } from './http/errors.js';
 import { requestId } from './http/requestId.js';
+import type { NoteService } from './notes/service.js';
 import { createAuthRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
+import { createNotesRouter } from './routes/notes.js';
 
 export interface AppDeps {
   /** When omitted, /api/auth routes are not mounted (health-only tests). */
@@ -26,6 +30,9 @@ export interface AppDeps {
   /** When omitted, the /api/auth/password-reset routes are not mounted. */
   passwordResetService?: PasswordResetService;
   resetRateLimits?: ResetRateLimitConfig;
+  /** When omitted, the /api/notes routes are not mounted. */
+  noteService?: NoteService;
+  noteWriteLimit?: LimitRule;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -35,15 +42,27 @@ export function createApp(deps: AppDeps = {}): express.Express {
 
   // Public, unauthenticated: keep mounted before any future auth middleware.
   app.use('/api', healthRouter);
+  const jwtSecret = deps.jwtSecret ?? randomBytes(32).toString('hex');
   if (deps.authService) {
     app.use(
       '/api/auth',
       createAuthRouter(
         deps.authService,
-        deps.jwtSecret ?? randomBytes(32).toString('hex'),
+        jwtSecret,
         deps.rateLimits ?? DEFAULT_RATE_LIMITS,
         deps.passwordResetService,
         deps.resetRateLimits ?? DEFAULT_RESET_RATE_LIMITS,
+      ),
+    );
+  }
+
+  if (deps.noteService) {
+    app.use(
+      '/api/notes',
+      createNotesRouter(
+        deps.noteService,
+        jwtSecret,
+        deps.noteWriteLimit ?? DEFAULT_NOTE_WRITE_LIMIT,
       ),
     );
   }

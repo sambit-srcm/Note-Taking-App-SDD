@@ -22,6 +22,8 @@ const envObject = z.object({
   RESET_REQUEST_RATE_LIMIT_WINDOW_SECONDS: positiveInt(3600),
   RESET_CONFIRM_RATE_LIMIT_MAX: positiveInt(10),
   RESET_CONFIRM_RATE_LIMIT_WINDOW_SECONDS: positiveInt(900),
+  NOTE_WRITE_RATE_LIMIT_MAX: positiveInt(60),
+  NOTE_WRITE_RATE_LIMIT_WINDOW_SECONDS: positiveInt(60),
 });
 
 // The documented placeholder must never protect OTPs in production.

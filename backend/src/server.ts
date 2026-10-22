@@ -1,10 +1,15 @@
 import { createApp } from './app.js';
 import { createPasswordResetService } from './auth/passwordReset.js';
-import { rateLimitConfigFromEnv, resetRateLimitConfigFromEnv } from './auth/rateLimit.js';
+import {
+  noteWriteLimitFromEnv,
+  rateLimitConfigFromEnv,
+  resetRateLimitConfigFromEnv,
+} from './auth/rateLimit.js';
 import { createAuthService } from './auth/service.js';
 import { EnvError, formatEnvIssues, loadEnv } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { logger } from './http/logger.js';
+import { createNoteService } from './notes/service.js';
 
 try {
   const env = loadEnv();
@@ -26,6 +31,8 @@ try {
     rateLimits: rateLimitConfigFromEnv(env),
     passwordResetService: passwordReset,
     resetRateLimits: resetRateLimitConfigFromEnv(env),
+    noteService: createNoteService({ prisma }),
+    noteWriteLimit: noteWriteLimitFromEnv(env),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {
   if (err instanceof EnvError) {

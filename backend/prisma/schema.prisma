@@ -18,6 +18,7 @@ model User {
 
   refreshTokenSessions    RefreshTokenSession[]
   passwordResetChallenges PasswordResetChallenge[]
+  notes                   Note[]
 }
 
 model RefreshTokenSession {
@@ -51,4 +52,32 @@ model PasswordResetChallenge {
 
   @@index([userId, createdAt])
   @@index([expiresAt])
+}
+
+model Note {
+  id         String    @id @default(uuid()) @db.Uuid
+  ownerId    String    @db.Uuid
+  title      String
+  content    Json
+  searchText String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  versions NoteVersion[]
+
+  @@index([ownerId, deletedAt, updatedAt(sort: Desc), id])
+}
+
+model NoteVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  noteId    String   @db.Uuid
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId, createdAt])
 }

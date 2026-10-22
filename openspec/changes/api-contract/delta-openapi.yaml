@@ -112,7 +112,6 @@ paths:
     get:
       tags: [Notes]
       summary: List own notes (FRS-NOTE-004, FRS-TAG-002)
-      x-proposed: true
       parameters:
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PageSize' }
@@ -139,7 +138,6 @@ paths:
     post:
       tags: [Notes]
       summary: Create note + initial version atomically (FRS-NOTE-001)
-      x-proposed: true
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NoteInput' } } } }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
@@ -152,7 +150,6 @@ paths:
     get:
       tags: [Notes]
       summary: Read own note (FRS-NOTE-002). Trashed notes are readable by the owner.
-      x-proposed: true
       responses:
         '200': { description: Note, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -160,20 +157,19 @@ paths:
     patch:
       tags: [Notes]
       summary: Update note; snapshot in same transaction (FRS-NOTE-002)
-      description: Invalid/oversized updates change nothing and create no version. Trashed notes cannot be edited (OPEN-6).
-      x-proposed: true
+      description: "Invalid/oversized updates change nothing and create no version. Trashed notes cannot be edited (409, OPEN-6, approved for AB-1004)."
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NoteUpdate' } } } }
       responses:
         '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Notes]
       summary: Move to trash, set deletedAt (FRS-NOTE-003). Idempotent.
-      x-proposed: true
       responses:
         '204': { description: Trashed }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -182,7 +178,6 @@ paths:
     post:
       tags: [Notes]
       summary: Restore from trash within 30 days (FRS-NOTE-003). Idempotent.
-      x-proposed: true
       parameters: [{ $ref: '#/components/parameters/NoteId' }]
       responses:
         '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }
