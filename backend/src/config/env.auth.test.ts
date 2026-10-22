@@ -10,6 +10,7 @@ const base = {
   PORT: '3000',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
   JWT_SECRET: SECRET,
+  OTP_SECRET: 'test-only-otp-secret-0123456789-abcdefg',
 };
 
 describe('JWT_SECRET', () => {
@@ -58,8 +59,15 @@ describe('token lifetimes', () => {
   });
 
   it('coerces explicit values', () => {
-    const result = parseEnv({ ...base, ACCESS_TOKEN_TTL_SECONDS: '60', REFRESH_TOKEN_TTL_SECONDS: '120' });
-    expect(result).toMatchObject({ ok: true, env: { ACCESS_TOKEN_TTL_SECONDS: 60, REFRESH_TOKEN_TTL_SECONDS: 120 } });
+    const result = parseEnv({
+      ...base,
+      ACCESS_TOKEN_TTL_SECONDS: '60',
+      REFRESH_TOKEN_TTL_SECONDS: '120',
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      env: { ACCESS_TOKEN_TTL_SECONDS: 60, REFRESH_TOKEN_TTL_SECONDS: 120 },
+    });
   });
 
   it.each(['abc', '0', '-5', '1.5'])('rejects ACCESS_TOKEN_TTL_SECONDS=%s', (v) => {

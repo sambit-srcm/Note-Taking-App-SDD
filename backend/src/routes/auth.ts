@@ -1,12 +1,21 @@
 import {
   loginRequestSchema,
   logoutRequestSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   refreshRequestSchema,
   registerRequestSchema,
 } from '@notes/shared';
 import { Router } from 'express';
 import { requireAuth } from '../auth/requireAuth.js';
-import { createAuthLimiters, type RateLimitConfig } from '../auth/rateLimit.js';
+import type { PasswordResetService } from '../auth/passwordReset.js';
+import {
+  createAuthLimiters,
+  createResetLimiters,
+  DEFAULT_RESET_RATE_LIMITS,
+  type RateLimitConfig,
+  type ResetRateLimitConfig,
+} from '../auth/rateLimit.js';
 import type { AuthService } from '../auth/service.js';
 import { jsonBody } from '../http/jsonBody.js';
 import { parseBody } from '../http/validate.js';
@@ -15,6 +24,8 @@ export function createAuthRouter(
   auth: AuthService,
   jwtSecret: string,
   rateLimits: RateLimitConfig,
+  reset?: PasswordResetService,
+  resetRateLimits: ResetRateLimitConfig = DEFAULT_RESET_RATE_LIMITS,
 ): Router {
   const router = Router();
   const limiters = createAuthLimiters(rateLimits);
@@ -40,6 +51,20 @@ export function createAuthRouter(
     await auth.logout(refreshToken, req.userId as string);
     res.status(204).end();
   });
+
+  if (reset) {
+    const resetLimiters = createResetLimiters(resetRateLimits);
+
+    router.post('/password-reset/request', jsonBody, ...resetLimiters.request, async (req, res) => {
+      await reset.requestReset(parseBody(passwordResetRequestSchema, req.body).email);
+      res.status(204).end();
+    });
+
+    router.post('/password-reset/confirm', jsonBody, ...resetLimiters.confirm, async (req, res) => {
+      await reset.confirmReset(parseBody(passwordResetConfirmSchema, req.body));
+      res.status(204).end();
+    });
+  }
 
   return router;
 }

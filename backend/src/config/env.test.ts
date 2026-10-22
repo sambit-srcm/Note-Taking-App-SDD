@@ -9,6 +9,7 @@ const valid = {
   PORT: '3000',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
   JWT_SECRET: 'test-only-secret-0123456789-abcdefghij',
+  OTP_SECRET: 'test-only-otp-secret-0123456789-abcdefg',
 };
 const SENTINEL = 'SENTINEL_SECRET_VALUE';
 
@@ -73,6 +74,7 @@ describe('loadEnv', () => {
         'DATABASE_URL',
         'JWT_SECRET',
         'NODE_ENV',
+        'OTP_SECRET',
         'PORT',
       ]);
     }

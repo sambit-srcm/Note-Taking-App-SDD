@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import express from 'express';
-import { DEFAULT_RATE_LIMITS, type RateLimitConfig } from './auth/rateLimit.js';
+import type { PasswordResetService } from './auth/passwordReset.js';
+import {
+  DEFAULT_RATE_LIMITS,
+  DEFAULT_RESET_RATE_LIMITS,
+  type RateLimitConfig,
+  type ResetRateLimitConfig,
+} from './auth/rateLimit.js';
 import type { AuthService } from './auth/service.js';
 import { errorHandler } from './http/errorHandler.js';
 import { NotFoundError } from './http/errors.js';
@@ -17,6 +23,9 @@ export interface AppDeps {
    */
   jwtSecret?: string;
   rateLimits?: RateLimitConfig;
+  /** When omitted, the /api/auth/password-reset routes are not mounted. */
+  passwordResetService?: PasswordResetService;
+  resetRateLimits?: ResetRateLimitConfig;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -33,6 +42,8 @@ export function createApp(deps: AppDeps = {}): express.Express {
         deps.authService,
         deps.jwtSecret ?? randomBytes(32).toString('hex'),
         deps.rateLimits ?? DEFAULT_RATE_LIMITS,
+        deps.passwordResetService,
+        deps.resetRateLimits ?? DEFAULT_RESET_RATE_LIMITS,
       ),
     );
   }

@@ -14,7 +14,7 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 5. **Invalid pagination**: FRS allows reject *or* normalize "per the shared API contract". Drafted: reject with 422.
 6. **Editing a trashed note**: FRS silent. Drafted as not allowed (404/409 to decide); `GET` of trashed note by owner allowed.
 7. **Search edge cases** (FRS-SEARCH-001): behavior for empty / punctuation-only queries (422 vs empty result), highlight marker format, and ordering (rank then id?).
-8. **OTP details**: OTP format/length; status for wrong/expired/exhausted OTP (drafted 401; alternative 422); whether confirm is one step (drafted) or verify-then-reset.
+8. **OTP details** (resolved for AB-1003, see below): OTP format/length; status for wrong/expired/exhausted OTP (drafted 401; alternative 422); whether confirm is one step (drafted) or verify-then-reset.
 9. **Registration duplicate email**: FRS-AUTH-001 requires rejecting duplicates (409) while FRS-AUTH-004 says avoid revealing registered emails. 409 on register leaks existence; accept or mitigate?
 10. **ID type**: UUID drafted; SDS says only "ID". Cursor vs page pagination also drafted as page/pageSize + total.
 11. **Error code catalogue** and `fields[]` item shape: SDS gives only `VALIDATION_ERROR` and optional `fields`.
@@ -29,6 +29,12 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **OPEN-12:** password length 12 to 128 characters, no composition rules.
 - **Implemented in AB-1002:** the four operations above are no longer `x-proposed`. `User` is `{id, email}`. Logout keeps `bearerAuth` plus a refresh-token body. Malformed or oversized JSON bodies return `422 VALIDATION_ERROR` (no new status). Rate-limit defaults are env-configurable (`*_RATE_LIMIT_MAX`, `*_RATE_LIMIT_WINDOW_SECONDS`).
 - **Rate limits (auth):** login 5/min, register 5/hour, refresh 30/min, per IP and per normalized email where present; defaults configurable via env.
+
+## Resolved for AB-1003 (user-approved 2026-10-22)
+- **OPEN-8:** OTP is 6 digits. Any wrong, expired, exhausted, consumed, or invalidated OTP returns one uniform `401 UNAUTHORIZED`; new-password policy failures return `422`. Confirm is a single step: `{email, otp, newPassword}`.
+- **Session policy:** a successful reset revokes all of the user's refresh sessions.
+- **Implemented in AB-1003:** `POST /auth/password-reset/request` (204/422/429) and `/confirm` (204/401/422/429) are no longer `x-proposed`. `otp` is exactly 6 digits (`passwordResetConfirmSchema`); the OTP is logged to the console only when `NODE_ENV=development`. Env: `OTP_SECRET` (min 32 chars, `change-me` placeholder rejected in production) and `RESET_{REQUEST,CONFIRM}_RATE_LIMIT_{MAX,WINDOW_SECONDS}`.
+- **Rate limits (reset):** request 5/hour, confirm 10 per 15 min, per IP and per normalized email; fixed 60 s per-account resend cooldown; 5 attempts per OTP. Defaults configurable via env.
 
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.
