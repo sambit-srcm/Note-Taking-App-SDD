@@ -8,6 +8,7 @@
     "node": ">=22 <23"
   },
   "scripts": {
+    "prepare": "husky",
     "dev": "pnpm -r --parallel --filter @notes/shared --filter ./backend --filter ./frontend dev",
     "build": "pnpm -r build",
     "lint": "pnpm --filter @notes/shared build && eslint . --max-warnings 0 && pnpm -r exec tsc --noEmit",
@@ -16,15 +17,28 @@
     "db:generate": "pnpm --filter ./backend prisma generate"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.5",
     "eslint": "10.12.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.13.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
     "prettier": "3.9.10",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.2",
     "vitest": "5.0.4"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "eslint --max-warnings 0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
   }
 }
