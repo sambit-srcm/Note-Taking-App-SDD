@@ -22,21 +22,21 @@
 
 ## 4. Prisma and database connectivity
 
-- [ ] 4.1 Add `schema.prisma` (generator and PostgreSQL datasource only, no models) and the `PrismaClient` singleton; verify `prisma validate` and `prisma generate` succeed. Do not create migrations.
-- [ ] 4.2 Add the `SELECT 1` connectivity script and `test:db` script; with approval to touch the local compose DB, verify the script succeeds against Postgres 16 and fails cleanly (no credentials in output) when `DATABASE_URL` points to an unreachable host
+- [x] 4.1 Add `schema.prisma` (generator and PostgreSQL datasource only, no models) and the `PrismaClient` singleton; verify `prisma validate` and `prisma generate` succeed. Do not create migrations.
+- [x] 4.2 Add the `SELECT 1` connectivity script and `test:db` script; with approval to touch the local compose DB, verify the script succeeds against Postgres 16 and fails cleanly (no credentials in output) when `DATABASE_URL` points to an unreachable host
 
 ## 5. Web scaffold
 
-- [ ] 5.1 Scaffold `frontend` (React 19, Vite, strict TS) with a `VITE_API_URL` check; verify `pnpm --filter ./frontend build` passes and the dev server starts
-- [ ] 5.2 Import the shared export in the web app and add a Vitest component or unit test; verify `pnpm --filter ./frontend test` passes
-- [ ] 5.3 Add the Playwright config with `webServer` wiring and a skipped placeholder spec; verify `pnpm test:e2e --list` lists it without running browsers
+- [x] 5.1 Scaffold `frontend` (React 19, Vite, strict TS) with a `VITE_API_URL` check; verify `pnpm --filter ./frontend build` passes and the dev server starts
+- [x] 5.2 Import the shared export in the web app and add a Vitest component or unit test; verify `pnpm --filter ./frontend test` passes
+- [x] 5.3 Add the Playwright config with `webServer` wiring and a skipped placeholder spec; verify `pnpm test:e2e --list` lists it without running browsers
 
 ## 6. Root scripts, contract, and docs
 
-- [ ] 6.1 Add root `dev` (web, api, and shared watch), `build`, `test`, and `test:e2e` scripts; verify `pnpm build` and `pnpm test` pass from a clean checkout and that `pnpm dev` serves both apps
-- [ ] 6.2 Add `GET /api/health` to `openspec/changes/api-contract/delta-openapi.yaml` as `x-proposed: true` and a matching entry in `OPEN_DECISIONS.md`; verify the YAML still parses and the traceability table mentions it
-- [ ] 6.3 Write setup docs (prerequisites, environment, DB via compose, Prisma commands, scripts) and update AGENTS.md §4 "Key Commands"; verify a fresh clone follows the docs exactly, with no undocumented step
-- [ ] 6.4 Final integration check against the ticket's acceptance criteria and Definition of Done: `pnpm build`, `pnpm lint --max-warnings 0`, and `pnpm test` all pass; `git status` shows no `.env` or secrets
+- [x] 6.1 Add root `dev` (web, api, and shared watch), `build`, `test`, and `test:e2e` scripts; verify `pnpm build` and `pnpm test` pass from a clean checkout and that `pnpm dev` serves both apps
+- [x] 6.2 Add `GET /api/health` to `openspec/changes/api-contract/delta-openapi.yaml` as `x-proposed: true` and a matching entry in `OPEN_DECISIONS.md`; verify the YAML still parses and the traceability table mentions it
+- [x] 6.3 Write setup docs (prerequisites, environment, DB via compose, Prisma commands, scripts) and update AGENTS.md §4 "Key Commands"; verify a fresh clone follows the docs exactly, with no undocumented step
+- [x] 6.4 Final integration check against the ticket's acceptance criteria and Definition of Done: `pnpm build`, `pnpm lint --max-warnings 0`, and `pnpm test` all pass; `git status` shows no `.env` or secrets
 
 ## Workflow follow-up
 

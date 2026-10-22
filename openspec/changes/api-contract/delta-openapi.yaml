@@ -17,8 +17,19 @@ tags:
   - { name: Sharing }
   - { name: Versions }
   - { name: Public }
+  - { name: Health }
 
 paths:
+  # ---------- Health (AB-1001, service-health) ----------
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness check (AB-1001; no FRS ID; P13)
+      description: No auth, no database call, no request body. Returns only the fixed status object.
+      x-proposed: true
+      security: []
+      responses:
+        '200': { description: API process is alive, content: { application/json: { schema: { $ref: '#/components/schemas/HealthResponse' } } } }
   # ---------- Auth (FRS 5.1) ----------
   /auth/register:
     post:
@@ -369,6 +380,12 @@ components:
     PayloadTooLarge: { description: Body exceeds HTTP cap (1 MiB document + bounded envelope), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RateLimited: { description: Rate limit exceeded, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok] }
     Error:
       type: object
       required: [error, requestId]

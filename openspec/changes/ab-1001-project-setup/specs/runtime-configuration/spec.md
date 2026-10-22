@@ -22,6 +22,18 @@ The API SHALL validate its required environment variables (`NODE_ENV`, `PORT`, `
 - **WHEN** the API starts with `PORT` set to a non-numeric value
 - **THEN** the process exits with a non-zero status
 
+### Requirement: The web app validates its API URL
+The web app SHALL read only `VITE_API_URL` and SHALL fail with an error that names `VITE_API_URL` and a fixed reason, and never the supplied value, when it is missing or not an absolute `http(s)` URL.
+
+#### Scenario: Valid API URL
+- **WHEN** `VITE_API_URL` is an absolute `http` or `https` URL
+- **THEN** the web app uses it as the API base URL
+
+#### Scenario: Missing or invalid API URL
+- **WHEN** `VITE_API_URL` is missing, empty, or not an absolute `http(s)` URL
+- **THEN** the error names `VITE_API_URL` as missing or invalid
+- **AND** the error does not contain the supplied value
+
 ### Requirement: Configuration errors are reported safely
 Configuration failure messages SHALL name the offending variables and the reason, and SHALL NOT print any variable's value.
 
@@ -35,7 +47,7 @@ Configuration failure messages SHALL name the offending variables and the reason
 - **AND** the output does not contain the supplied value
 
 ### Requirement: Secrets stay out of source control
-The repository SHALL provide a `.env.example` containing every required variable with a non-secret placeholder, and SHALL ignore real `.env` files in version control.
+The repository SHALL provide a `.env.example` containing every required variable (including `VITE_API_URL`) with a non-secret placeholder, and SHALL ignore real `.env` files in version control.
 
 #### Scenario: Example file is complete
 - **WHEN** a developer copies `.env.example` to `.env` and starts a local PostgreSQL 16 instance

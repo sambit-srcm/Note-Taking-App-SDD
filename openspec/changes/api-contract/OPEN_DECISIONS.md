@@ -47,6 +47,7 @@ All of the following are **PROPOSED**, not approved. Defined behavior (ownership
 | P10 | Ownership failures return 404 (never 403) | SDS §4 allows concealment; avoids existence leaks |
 | P11 | Password-reset request always 204 | FRS-AUTH-004 "avoid revealing whether an email is registered" |
 | P12 | UUID IDs, ISO-8601 timestamps, field names (`title`, `content`, `deletedAt`, `noteCount`, `viewCount`, `expiresAt`, ...) | SDS names concepts, not fields |
+| P13 | `GET /health` (served at `/api/health`): public liveness route returning `200 {"status":"ok"}`; no auth, no DB call | AB-1001 service-health spec; no FRS ID. The `NOT_FOUND` and `INTERNAL_ERROR` codes used by the AB-1001 error handler are provisional (OPEN-11) |
 
 # Traceability: requirement → operation
 
@@ -67,8 +68,9 @@ All of the following are **PROPOSED**, not approved. Defined behavior (ownership
 | FRS-SHARE-002 | — | GET /shared/{token} (mechanism OPEN-2) |
 | FRS-VERSION-001 | §3 NoteVersion | GET /notes/{noteId}/versions, GET .../versions/{versionId} |
 | FRS-VERSION-002 | §3 txn restore | POST .../versions/{versionId}/restore |
+| AB-1001 (service-health, no FRS ID) | §2 API, P13 | GET /health |
 
-No operation for scheduled purge/cleanup (system job, SDS §2). Every operation is traced; no FRS requirement lacks an operation.
+No operation for scheduled purge/cleanup (system job, SDS §2). Every operation is traced; no FRS requirement lacks an operation. `GET /health` traces to AB-1001, not an FRS requirement.
 
 # Validation
 

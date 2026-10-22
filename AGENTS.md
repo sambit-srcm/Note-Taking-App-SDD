@@ -33,15 +33,18 @@ Follow the approved repo structure if it differs from the layout above.
 - **Pin every dependency and tool version. Never use `@latest` or floating ranges.** Commit the lockfile.
 
 ## 4. Key Commands
-Not defined yet — no `package.json`. When scaffolding, expose these root scripts and update this section:
+Run under Node 22 (see `docs/SETUP.md`). Root scripts:
 ```bash
-pnpm install          # install (use --frozen-lockfile in CI)
-pnpm dev              # web + api dev servers
-pnpm build            # build all packages
-pnpm lint             # lint all
-pnpm test             # Vitest (unit + Supertest integration)
-pnpm test:e2e         # Playwright
-pnpm prisma migrate dev   # run from backend
+pnpm install                 # install (use --frozen-lockfile in CI)
+pnpm dev                     # web (:5173) + api (:3000) + shared watch
+pnpm build                   # build all packages
+pnpm lint                    # ESLint (--max-warnings 0) + tsc --noEmit per package
+pnpm test                    # Vitest (unit + Supertest); no DB needed
+pnpm test:e2e                # Playwright (frontend); needs browsers installed
+pnpm db:generate             # prisma generate (backend)
+pnpm --filter ./backend db:check   # SELECT 1 against DATABASE_URL
+pnpm --filter ./backend test:db    # DB-backed tests (needs compose Postgres)
+pnpm --filter ./backend prisma migrate dev   # run from root; needs approval
 ```
 
 ## 5. Architecture Patterns
