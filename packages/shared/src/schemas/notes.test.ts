@@ -137,14 +137,24 @@ describe('noteIdParamSchema', () => {
 });
 
 describe('noteListQuerySchema', () => {
-  it('defaults to page 1, pageSize 20, trash false', () => {
-    expect(noteListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 20, trash: false });
+  it('defaults to page 1, pageSize 20, trash false, updatedAt desc, no tags', () => {
+    expect(noteListQuerySchema.parse({})).toEqual({
+      page: 1,
+      pageSize: 20,
+      trash: false,
+      sort: 'updatedAt',
+      order: 'desc',
+      tagIds: [],
+    });
   });
   it('coerces query strings', () => {
     expect(noteListQuerySchema.parse({ page: '3', pageSize: '50', trash: 'true' })).toEqual({
       page: 3,
       pageSize: 50,
       trash: true,
+      sort: 'updatedAt',
+      order: 'desc',
+      tagIds: [],
     });
     expect(noteListQuerySchema.parse({ trash: 'false' }).trash).toBe(false);
   });
@@ -166,6 +176,59 @@ describe('noteListQuerySchema', () => {
     ['trash TRUE', { trash: 'TRUE' }],
     ['trash empty', { trash: '' }],
   ])('rejects %s', (_n, v) => {
+    expect(noteListQuerySchema.safeParse(v).success).toBe(false);
+  });
+});
+
+// FRS-NOTE-004: sort/order/tagIds are validated, never normalized.
+describe('noteListQuerySchema sort, order and tagIds (FRS-NOTE-004)', () => {
+  const U1 = '3f2b8c1e-1c0a-4f6e-9d57-0a1b2c3d4e5f';
+  const U2 = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+  const uuids = (n: number) =>
+    Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+
+  it.each(['updatedAt', 'createdAt', 'title'])('accepts sort=%s', (sort) => {
+    expect(noteListQuerySchema.parse({ sort }).sort).toBe(sort);
+  });
+  it.each(['asc', 'desc'])('accepts order=%s', (order) => {
+    expect(noteListQuerySchema.parse({ order }).order).toBe(order);
+  });
+  it.each([
+    ['unknown sort', { sort: 'content' }],
+    ['uppercase sort', { sort: 'TITLE' }],
+    ['wrong-case sort', { sort: 'updatedat' }],
+    ['empty sort', { sort: '' }],
+    ['sort with space', { sort: ' title' }],
+    ['unknown order', { order: 'up' }],
+    ['uppercase order', { order: 'ASC' }],
+    ['empty order', { order: '' }],
+  ])('rejects %s', (_n, v) => {
+    expect(noteListQuerySchema.safeParse(v).success).toBe(false);
+  });
+
+  it('tagIds: absent and empty string mean no filter', () => {
+    expect(noteListQuerySchema.parse({}).tagIds).toEqual([]);
+    expect(noteListQuerySchema.parse({ tagIds: '' }).tagIds).toEqual([]);
+  });
+  it('tagIds: parses one and several comma-separated UUIDs in order', () => {
+    expect(noteListQuerySchema.parse({ tagIds: U1 }).tagIds).toEqual([U1]);
+    expect(noteListQuerySchema.parse({ tagIds: `${U1},${U2}` }).tagIds).toEqual([U1, U2]);
+  });
+  it('tagIds: duplicates collapse', () => {
+    expect(noteListQuerySchema.parse({ tagIds: `${U1},${U2},${U1}` }).tagIds).toEqual([U1, U2]);
+  });
+  it('tagIds: exactly 10 accepted, 11 rejected', () => {
+    expect(noteListQuerySchema.parse({ tagIds: uuids(10).join(',') }).tagIds).toHaveLength(10);
+    expect(noteListQuerySchema.safeParse({ tagIds: uuids(11).join(',') }).success).toBe(false);
+  });
+  it.each([
+    ['non-uuid', { tagIds: 'abc' }],
+    ['one bad among good', { tagIds: `${U1},nope` }],
+    ['trailing comma', { tagIds: `${U1},` }],
+    ['leading comma', { tagIds: `,${U1}` }],
+    ['double comma', { tagIds: `${U1},,${U2}` }],
+    ['spaces around ids', { tagIds: `${U1}, ${U2}` }],
+  ])('tagIds: rejects %s', (_n, v) => {
     expect(noteListQuerySchema.safeParse(v).success).toBe(false);
   });
 });

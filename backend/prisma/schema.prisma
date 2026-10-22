@@ -68,6 +68,7 @@ model Note {
   versions NoteVersion[]
 
   @@index([ownerId, deletedAt, updatedAt(sort: Desc), id])
+  @@index([ownerId, deletedAt, createdAt(sort: Desc), id])
 }
 
 model NoteVersion {

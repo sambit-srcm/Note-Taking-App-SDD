@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import {
+  NOTE_SORT_FIELDS,
+  NOTE_TAG_FILTER_MAX,
   NOTE_TITLE_MAX_CODE_POINTS,
   PAGE_SIZE_DEFAULT,
   PAGE_SIZE_MAX,
+  SORT_ORDERS,
 } from '../constants/notes.js';
 import { isStorableText, validateTipTapDoc, type TipTapDoc } from './tiptap.js';
 
@@ -46,10 +49,20 @@ export const noteUpdateSchema = z
 export const noteIdParamSchema = z.uuid();
 
 const queryBool = z.enum(['true', 'false']).transform((v) => v === 'true');
+// Comma-separated UUIDs; empty or absent means no filter. Duplicates collapse.
+const tagIdsQuery = z
+  .string()
+  .transform((s) => (s === '' ? [] : s.split(',')))
+  .pipe(z.array(z.uuid()).max(NOTE_TAG_FILTER_MAX))
+  .transform((ids) => [...new Set(ids)]);
+
 export const noteListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(PAGE_SIZE_MAX).default(PAGE_SIZE_DEFAULT),
   trash: queryBool.default(false),
+  sort: z.enum(NOTE_SORT_FIELDS).default('updatedAt'),
+  order: z.enum(SORT_ORDERS).default('desc'),
+  tagIds: tagIdsQuery.default([]),
 });
 
 export const noteSchema = z.object({

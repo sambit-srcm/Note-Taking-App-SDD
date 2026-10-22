@@ -19,9 +19,9 @@ import { ConflictError, NotFoundError } from '../http/errors.js';
 // POST/GET /api/notes, GET/PATCH/DELETE /api/notes/:id and POST /api/notes/:id/restore behind
 // requireAuth. noteService = createNote(ownerId, {title, content}) / getNote(ownerId, id) /
 // updateNote(ownerId, id, {title?, content?}) / trashNote(ownerId, id) / restoreNote(ownerId, id) /
-// listNotes(ownerId, {page, pageSize, trash}). Approved decisions: trashed edit 409 CONFLICT,
-// oversized body 413 PAYLOAD_TOO_LARGE, malformed JSON 422, non-UUID id 422, GET /notes accepts
-// only page/pageSize/trash (anything else 422), write limit applies to POST and PATCH.
+// listNotes(ownerId, {page, pageSize, trash, sort, order, tagIds}). Approved decisions: trashed edit 409 CONFLICT,
+// oversized body 413 PAYLOAD_TOO_LARGE, malformed JSON 422, non-UUID id 422, GET /notes validates
+// page/pageSize/trash/sort/order/tagIds (invalid -> 422, unknown keys ignored), write limit applies to POST and PATCH.
 const SECRET = 'notes-route-test-secret-0123456789-abcdef';
 const USER_A = randomUUID();
 const USER_B = randomUUID();
@@ -105,7 +105,17 @@ function fakeService() {
       n.deletedAt = null;
       return view(n);
     },
-    async listNotes(owner: string, q: { page: number; pageSize: number; trash: boolean }) {
+    async listNotes(
+      owner: string,
+      q: {
+        page: number;
+        pageSize: number;
+        trash: boolean;
+        sort: string;
+        order: string;
+        tagIds: string[];
+      },
+    ) {
       rec('listNotes', owner, q);
       if (this.failWith) throw this.failWith;
       const all = [...notes.values()].filter(
@@ -657,7 +667,10 @@ describe('GET /api/notes (FRS-NOTE-002/003 lists)', () => {
     expect(page.pagination).toEqual({ page: 1, pageSize: 20, total: 1 });
     expect(svc.calls[0]).toEqual({
       fn: 'listNotes',
-      args: [USER_A, { page: 1, pageSize: 20, trash: false }],
+      args: [
+        USER_A,
+        { page: 1, pageSize: 20, trash: false, sort: 'updatedAt', order: 'desc', tagIds: [] },
+      ],
     });
   });
 
@@ -668,7 +681,14 @@ describe('GET /api/notes (FRS-NOTE-002/003 lists)', () => {
       .get('/api/notes?page=2&pageSize=100&trash=true')
       .set('Authorization', await auth());
     expect(res.status).toBe(200);
-    expect(svc.calls[0]?.args[1]).toEqual({ page: 2, pageSize: 100, trash: true });
+    expect(svc.calls[0]?.args[1]).toEqual({
+      page: 2,
+      pageSize: 100,
+      trash: true,
+      sort: 'updatedAt',
+      order: 'desc',
+      tagIds: [],
+    });
     expect(res.body.items.map((i: { id: string }) => i.id)).toEqual([n.id]);
   });
 
@@ -698,13 +718,124 @@ describe('GET /api/notes (FRS-NOTE-002/003 lists)', () => {
     expect(svc.count()).toBe(0);
   });
 
-  it('ignores unknown query keys (sort and tag filters arrive with AB-1005)', async () => {
+  it('ignores unknown query keys', async () => {
     const svc = fakeService();
     const res = await request(build(svc))
-      .get('/api/notes?sort=title&tag=work&q=hello')
+      .get('/api/notes?tag=work&q=hello&foo=bar')
       .set('Authorization', await auth());
     expect(res.status).toBe(200);
-    expect(svc.calls[0]?.args[1]).toEqual({ page: 1, pageSize: 20, trash: false });
+    expect(svc.calls[0]?.args[1]).toEqual({
+      page: 1,
+      pageSize: 20,
+      trash: false,
+      sort: 'updatedAt',
+      order: 'desc',
+      tagIds: [],
+    });
+  });
+});
+
+describe('GET /api/notes sorting and paging (FRS-NOTE-004)', () => {
+  it.each([
+    ['sort=title&order=asc', 'title', 'asc'],
+    ['sort=createdAt', 'createdAt', 'desc'],
+    ['sort=updatedAt&order=asc', 'updatedAt', 'asc'],
+    ['order=asc', 'updatedAt', 'asc'],
+    ['sort=title&order=desc', 'title', 'desc'],
+  ])('200 and passes %s to the service as %s/%s', async (qs, sort, order) => {
+    const svc = fakeService();
+    seed(svc);
+    const res = await request(build(svc))
+      .get(`/api/notes?${qs}`)
+      .set('Authorization', await auth());
+    expect(res.status).toBe(200);
+    expect(noteSummaryPageSchema.parse(res.body).items).toHaveLength(1);
+    expect(svc.calls[0]?.args[1]).toMatchObject({ sort, order });
+  });
+
+  it.each([
+    ['sort=content'],
+    ['sort=TITLE'],
+    ['sort='],
+    ['order=up'],
+    ['order=ASC'],
+    ['order='],
+    ['tagIds=not-a-uuid'],
+    ['page=-1'],
+    ['page=1.5'],
+    ['pageSize=1000'],
+    ['pageSize=abc'],
+    ['page=1&page=2'],
+  ])('422 VALIDATION_ERROR for %s, never normalized; service not called', async (qs) => {
+    const svc = fakeService();
+    const res = await request(build(svc))
+      .get(`/api/notes?${qs}`)
+      .set('Authorization', await auth());
+    const parsed = expectError(res, 422, 'VALIDATION_ERROR');
+    expect(parsed.error.fields?.length).toBeGreaterThan(0);
+    expect(svc.count()).toBe(0);
+  });
+
+  // R2: tagIds query parsing (comma list, empty -> [], max 10)
+  describe('tagIds query parsing', () => {
+    const T1 = randomUUID();
+    const T2 = randomUUID();
+    it.each([
+      ['single id', `tagIds=${T1}`, [T1]],
+      ['comma list', `tagIds=${T1},${T2}`, [T1, T2]],
+      ['empty value', 'tagIds=', []],
+    ])('200 and passes %s to the service as a parsed array', async (_n, qs, expected) => {
+      const svc = fakeService();
+      seed(svc);
+      const res = await request(build(svc))
+        .get(`/api/notes?${qs}`)
+        .set('Authorization', await auth());
+      expect(res.status).toBe(200);
+      expect(svc.calls[0]?.args[1]).toMatchObject({ tagIds: expected });
+    });
+
+    it('422 VALIDATION_ERROR for 11 ids; service not called', async () => {
+      const svc = fakeService();
+      const eleven = Array.from({ length: 11 }, () => randomUUID()).join(',');
+      const res = await request(build(svc))
+        .get(`/api/notes?tagIds=${eleven}`)
+        .set('Authorization', await auth());
+      expectError(res, 422, 'VALIDATION_ERROR');
+      expect(svc.count()).toBe(0);
+    });
+  });
+
+  it('accepts the page bounds: pageSize 1 and 100, a very large page', async () => {
+    const svc = fakeService();
+    seed(svc);
+    const app = build(svc);
+    const h = await auth();
+    for (const qs of ['pageSize=1', 'pageSize=100', 'page=9999']) {
+      expect((await request(app).get(`/api/notes?${qs}`).set('Authorization', h)).status).toBe(200);
+    }
+  });
+
+  it('401 UNAUTHORIZED with sort params and no token; service not called', async () => {
+    const svc = fakeService();
+    const res = await request(build(svc)).get('/api/notes?sort=title&order=asc');
+    expectError(res, 401, 'UNAUTHORIZED');
+    expect(svc.count()).toBe(0);
+  });
+
+  it('auth is checked before query validation (invalid query without token is 401)', async () => {
+    const svc = fakeService();
+    expectError(await request(build(svc)).get('/api/notes?sort=bogus'), 401, 'UNAUTHORIZED');
+    expect(svc.count()).toBe(0);
+  });
+
+  it('owner comes from the token, never the query', async () => {
+    const svc = fakeService();
+    seed(svc, USER_A);
+    const res = await request(build(svc))
+      .get(`/api/notes?sort=title&ownerId=${USER_A}`)
+      .set('Authorization', await auth(USER_B));
+    expect(res.body.items).toEqual([]);
+    expect(svc.calls[0]?.args[0]).toBe(USER_B);
   });
 });
 
