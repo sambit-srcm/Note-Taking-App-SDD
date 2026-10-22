@@ -27,8 +27,6 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - Status `413` and body cap: FRS/SDS give no numeric HTTP cap beyond "1 MiB + bounded envelope"; the number is a `/plan` item.
 - Public endpoint 429 and refresh/search rate limits are required by SDS §5 but no thresholds are specified.
 - CLAUDE.md refers to `delta-openapi.yaml`; final location after approval (e.g. `openspec/specs/`) is undecided.
-- Graphify graph is stale vs. current FRS/SDS (not a contract issue).
-
 ---
 
 # PROPOSED design decisions (rationale)

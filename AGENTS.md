@@ -3,7 +3,7 @@
 Single source of truth for all AI tools on this team. Derived from `docs/FRS.md` and `docs/SDS.md`.
 If this file conflicts with the FRS/SDS or the approved OpenAPI contract, the spec wins — then fix this file.
 
-> **Status:** Pre-implementation. The repo currently holds only specs (`docs/`, `openspec/`) and tooling (`.claude/`, `graphify-out/`).
+> **Status:** Pre-implementation. The repo currently holds specs (`docs/`, `openspec/`) and tooling (`.claude/`).
 > No `backend/`, `frontend/` or `packages/` code, `package.json`, or tests exist yet. Items marked *(planned)* are not real yet — verify before relying on them.
 
 ## 1. Project Overview
@@ -19,7 +19,7 @@ packages/shared/   # Zod schemas, TS types, validation constants        (planned
 docs/              # FRS.md (what), SDS.md (how)
 openspec/          # Specs, changes, archives. Draft API contract: openspec/changes/api-contract/
 .claude/           # Agents (engineer, reviewer, tester), skills, /opsx commands, hooks
-graphify-out/      # Generated knowledge graph — query via `graphify query "<q>"`, don't hand-edit
+.code-review-graph/ # Local code-review-graph database. Gitignored. Query it through the VS Code MCP.
 ```
 Follow the approved repo structure if it differs from the layout above.
 
@@ -138,7 +138,7 @@ It is the **only** place for cross-app contracts. Don't duplicate schemas in `fr
 - Don't hard-delete notes inside the 30-day window; don't skip transactions on note+version writes.
 - Don't expose version history, owner metadata, or editing via public share links.
 - Don't build out-of-scope features: real-time collab, attachments, mobile apps, OAuth/social login, nested folders, real email delivery.
-- Don't edit `graphify-out/` by hand; use `graphify query` before grepping raw files.
+- Don't commit `.code-review-graph/`. Use the code-review-graph MCP in VS Code for structure questions, then read the source it names.
 
 ## 14. Change workflow
 Use OpenSpec commands, not the manual `/spec`, `/plan`, `/tasks`, and `/implement` sequence.

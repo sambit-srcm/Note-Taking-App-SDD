@@ -5,7 +5,7 @@ Project facts, stack, architecture and standards live in AGENTS.md. This file on
 
 ## Permission model: ask vs proceed
 **Proceed without asking:**
-- Read, search, and explore files; `graphify query`.
+- Read, search, and explore files. For structure questions, use the code-review-graph MCP (project server in `.mcp.json`).
 - Edit or create files inside the approved task's scope.
 - Run lint, typecheck, unit tests, and builds.
 - Read-only git: `status`, `diff`, `log`, `show`.
@@ -31,12 +31,12 @@ Project facts, stack, architecture and standards live in AGENTS.md. This file on
 | `rm -rf`, `mv` over existing files, `chmod`, `sudo` | Destructive |
 | `curl`/`wget` to external hosts, anything sending data off-machine | Outward-facing |
 | `pnpm test:e2e` | Slow, needs running services |
-Allowed without a prompt: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, `git status/diff/log`, `ls`, `graphify query`.
+Allowed without a prompt: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, `git status/diff/log`, `ls`, `code-review-graph update`.
 
 ## Context management
 - Run `/clear` once the session reaches about **60k tokens**, or sooner when switching to an unrelated task.
 - Before clearing, write down the current task, decisions made, and next step in the task notes or the OpenSpec change, so nothing lives only in chat.
-- Prefer `graphify query "<question>"` over broad file reads; read only the line ranges you need.
+- Prefer the code-review-graph MCP over broad file reads; read only the files and lines it names.
 - Delegate wide searches to the Explore agent so file dumps stay out of the main context.
 - One approved task per session. Use the `engineer`, `tester`, and `reviewer` agents in `.claude/agents/`.
 - Drive changes with `/opsx:propose`, `/opsx:apply`, `/opsx:update`, `/opsx:sync`, and `/opsx:archive`. Do not use `/spec`, `/plan`, `/tasks`, or `/implement` as the planning path.
@@ -80,3 +80,44 @@ Run in this order and stop at the first failure. Fix it before moving on:
 - Do not report a task done until gates 1–3 pass. If a gate fails, report the real output. Never skip, disable, or weaken a test or lint rule to get green.
 - Commands don't exist until the repo is scaffolded. If `package.json` is missing, say so and don't pretend a gate passed.
 - Before a PR: run the `reviewer` agent against the diff and the acceptance criteria.
+
+<!-- code-review-graph MCP tools -->
+## MCP Tools: code-review-graph
+
+This project has a knowledge graph. Start with the code-review-graph MCP tools to narrow scope, then read the source. The graph is cheaper than scanning files and gives structural context (callers, dependents, test coverage) that file search cannot.
+
+### When to use graph tools FIRST
+
+- **Exploring code**: `semantic_search_nodes_tool` or `query_graph_tool` instead of Grep
+- **Understanding impact**: `get_impact_radius_tool` instead of manually tracing imports
+- **Code review**: `detect_changes_tool` + `get_review_context_tool` instead of reading entire files
+- **Finding relationships**: `query_graph_tool` with callers_of/callees_of/imports_of/tests_for
+- **Architecture questions**: `get_architecture_overview_tool` + `list_communities_tool`
+
+### Verify in the source
+
+- Narrow scope with the graph, then read the source. Do not change code from graph output alone.
+- For any non-trivial change, read the implementation and the relevant tests before concluding.
+- When the graph and the source disagree, the source wins. The graph may be stale.
+- An empty graph result can mean "not indexed" or "not statically visible", not "does not exist".
+
+### Key Tools
+
+| Tool | Use when |
+| ------ | ---------- |
+| `detect_changes_tool` | Reviewing code changes — risk-scored analysis |
+| `get_review_context_tool` | Source snippets for review |
+| `get_impact_radius_tool` | Blast radius of a change |
+| `get_affected_flows_tool` | Which execution paths are impacted |
+| `query_graph_tool` | Callers, callees, imports, tests, dependencies |
+| `semantic_search_nodes_tool` | Functions or classes by name or keyword |
+| `get_architecture_overview_tool` | High-level codebase structure |
+| `refactor_tool` | Rename planning, dead code |
+
+### Workflow
+
+1. Run `code-review-graph update` after code changes.
+2. Use `detect_changes_tool` for code review.
+3. Use `get_affected_flows_tool` to understand impact.
+4. Use `query_graph_tool` pattern="tests_for" to check coverage.
+<!-- /code-review-graph MCP tools -->

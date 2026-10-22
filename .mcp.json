@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["code-review-graph==2.3.9", "serve"],
+      "cwd": "/Users/sambit/note-taking-app"
+    }
+  }
+}

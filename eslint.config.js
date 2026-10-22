@@ -10,7 +10,7 @@ export default defineConfig([
     '**/coverage/**',
     '**/node_modules/**',
     '**/playwright-report/**',
-    'graphify-out/**',
+    '.code-review-graph/**',
     '**/generated/**',
   ]),
   js.configs.recommended,
