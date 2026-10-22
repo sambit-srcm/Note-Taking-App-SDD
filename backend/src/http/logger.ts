@@ -11,6 +11,9 @@ const REDACTED_KEYS = new Set([
   'cookie',
   'secret',
   'jwt_secret',
+  'otp',
+  'newpassword',
+  'otp_secret',
 ]);
 
 export function redact(value: unknown, depth = 0): unknown {

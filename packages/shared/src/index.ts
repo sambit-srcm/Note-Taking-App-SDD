@@ -2,6 +2,8 @@ export {
   authTokensSchema,
   loginRequestSchema,
   logoutRequestSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   refreshRequestSchema,
   registerRequestSchema,
   userSchema,
@@ -10,6 +12,7 @@ export { errorFieldSchema, errorResponseSchema } from './schemas/error.js';
 export { healthResponseSchema } from './schemas/health.js';
 export {
   EMAIL_MAX_LENGTH,
+  OTP_LENGTH,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   REFRESH_TOKEN_MAX_LENGTH,
@@ -22,6 +25,8 @@ export type {
   HealthResponse,
   LoginRequest,
   LogoutRequest,
+  PasswordResetConfirm,
+  PasswordResetRequest,
   RefreshRequest,
   RegisterRequest,
   User,

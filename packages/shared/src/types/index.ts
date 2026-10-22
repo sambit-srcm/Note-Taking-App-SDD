@@ -3,6 +3,8 @@ import type {
   authTokensSchema,
   loginRequestSchema,
   logoutRequestSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   refreshRequestSchema,
   registerRequestSchema,
   userSchema,
@@ -19,3 +21,5 @@ export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 export type User = z.infer<typeof userSchema>;
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;

@@ -79,18 +79,16 @@ paths:
       tags: [Auth]
       summary: Request OTP (FRS-AUTH-004)
       description: Always 204 for well-formed input, whether or not the email is registered. OTP is logged to server console only.
-      x-proposed: true
       security: []
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } } } } } }
       responses:
         '204': { description: Accepted }
         '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { $ref: '#/components/responses/RateLimited' }   # 60s resend cooldown, account + IP limits
+        '429': { $ref: '#/components/responses/RateLimited' }   # 60s per-account resend cooldown; request 5/hour, per IP and per normalized email
   /auth/password-reset/confirm:
     post:
       tags: [Auth]
       summary: Verify OTP and set new password (FRS-AUTH-004)
-      x-proposed: true
       security: []
       requestBody:
         required: true
@@ -101,13 +99,13 @@ paths:
               required: [email, otp, newPassword]
               properties:
                 email: { type: string, format: email }
-                otp: { type: string }          # OPEN-8: format/length
+                otp: { type: string, pattern: '^[0-9]{6}$' }   # OPEN-8: 6 digits
                 newPassword: { $ref: '#/components/schemas/Password' }
       responses:
         '204': { description: Password reset; OTP consumed }
-        '401': { $ref: '#/components/responses/Unauthorized' }   # invalid/expired/exhausted OTP (OPEN-8: 401 vs 422)
+        '401': { $ref: '#/components/responses/Unauthorized' }   # wrong/expired/exhausted/consumed/invalidated OTP, one uniform body (OPEN-8)
         '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { $ref: '#/components/responses/RateLimited' }
+        '429': { $ref: '#/components/responses/RateLimited' }   # confirm 10 per 15 min, per IP and per normalized email
 
   # ---------- Notes (FRS 5.2-5.4) ----------
   /notes:

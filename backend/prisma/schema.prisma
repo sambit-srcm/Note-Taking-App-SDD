@@ -16,7 +16,8 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  refreshTokenSessions RefreshTokenSession[]
+  refreshTokenSessions    RefreshTokenSession[]
+  passwordResetChallenges PasswordResetChallenge[]
 }
 
 model RefreshTokenSession {
@@ -33,5 +34,21 @@ model RefreshTokenSession {
 
   @@index([userId])
   @@index([familyId])
+  @@index([expiresAt])
+}
+
+model PasswordResetChallenge {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  otpHmac       String
+  expiresAt     DateTime
+  attempts      Int       @default(0)
+  consumedAt    DateTime?
+  invalidatedAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
   @@index([expiresAt])
 }

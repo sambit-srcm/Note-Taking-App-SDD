@@ -4,11 +4,12 @@ import { z } from 'zod';
 const positiveInt = (fallback: number) =>
   z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(1).default(fallback));
 
-const envSchema = z.object({
+const envObject = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),
   PORT: z.coerce.number().int().min(1).max(65535),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   JWT_SECRET: z.string().min(32),
+  OTP_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL_SECONDS: positiveInt(900),
   REFRESH_TOKEN_TTL_SECONDS: positiveInt(604800),
   LOGIN_RATE_LIMIT_MAX: positiveInt(5),
@@ -17,9 +18,19 @@ const envSchema = z.object({
   REGISTER_RATE_LIMIT_WINDOW_SECONDS: positiveInt(3600),
   REFRESH_RATE_LIMIT_MAX: positiveInt(30),
   REFRESH_RATE_LIMIT_WINDOW_SECONDS: positiveInt(60),
+  RESET_REQUEST_RATE_LIMIT_MAX: positiveInt(5),
+  RESET_REQUEST_RATE_LIMIT_WINDOW_SECONDS: positiveInt(3600),
+  RESET_CONFIRM_RATE_LIMIT_MAX: positiveInt(10),
+  RESET_CONFIRM_RATE_LIMIT_WINDOW_SECONDS: positiveInt(900),
 });
 
-export type Env = z.infer<typeof envSchema>;
+// The documented placeholder must never protect OTPs in production.
+const envSchema = envObject.refine(
+  (env) => env.NODE_ENV !== 'production' || !env.OTP_SECRET.toLowerCase().includes('change-me'),
+  { path: ['OTP_SECRET'], message: 'placeholder' },
+);
+
+export type Env = z.infer<typeof envObject>;
 
 // Fixed reason set: raw validator messages can echo input, so they are never surfaced.
 export type EnvIssueReason = 'missing' | 'invalid';

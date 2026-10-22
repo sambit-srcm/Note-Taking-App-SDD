@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   EMAIL_MAX_LENGTH,
   PASSWORD_MAX_LENGTH,
+  OTP_LENGTH,
   PASSWORD_MIN_LENGTH,
   REFRESH_TOKEN_MAX_LENGTH,
 } from '../constants/auth.js';
@@ -53,4 +54,14 @@ export const userSchema = z.object({
 export const authTokensSchema = z.object({
   accessToken: z.string().min(1),
   refreshToken: z.string().min(1),
+});
+
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const passwordResetConfirmSchema = z.object({
+  email: emailSchema,
+  otp: z.string().regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), 'Code must be exactly 6 digits.'),
+  newPassword: newPasswordSchema,
 });

@@ -1,5 +1,6 @@
 import { createApp } from './app.js';
-import { rateLimitConfigFromEnv } from './auth/rateLimit.js';
+import { createPasswordResetService } from './auth/passwordReset.js';
+import { rateLimitConfigFromEnv, resetRateLimitConfigFromEnv } from './auth/rateLimit.js';
 import { createAuthService } from './auth/service.js';
 import { EnvError, formatEnvIssues, loadEnv } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
@@ -7,16 +8,24 @@ import { logger } from './http/logger.js';
 
 try {
   const env = loadEnv();
+  const prisma = getPrismaClient(env.DATABASE_URL);
   const auth = createAuthService({
-    prisma: getPrismaClient(env.DATABASE_URL),
+    prisma,
     jwtSecret: env.JWT_SECRET,
     accessTokenTtlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,
     refreshTokenTtlSeconds: env.REFRESH_TOKEN_TTL_SECONDS,
+  });
+  const passwordReset = createPasswordResetService({
+    prisma,
+    otpSecret: env.OTP_SECRET,
+    nodeEnv: env.NODE_ENV,
   });
   createApp({
     authService: auth,
     jwtSecret: env.JWT_SECRET,
     rateLimits: rateLimitConfigFromEnv(env),
+    passwordResetService: passwordReset,
+    resetRateLimits: resetRateLimitConfigFromEnv(env),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {
   if (err instanceof EnvError) {
