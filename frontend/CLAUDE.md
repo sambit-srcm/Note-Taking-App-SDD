@@ -16,7 +16,7 @@ pnpm --filter ./frontend test:e2e      # Playwright, needs API running; [y/n] ne
 - shadcn/ui first. Compose existing primitives before writing custom ones. Don't hand-edit generated `ui/` files beyond theming.
 - Feature folders (`features/notes`, `features/auth`, ...) hold their own components, hooks, and API calls.
 - All HTTP goes through one API client module. It attaches the access token and handles `401` → refresh once → retry, else log out.
-- Types and Zod schemas are imported from `@shared`. Never redefine them locally.
+- Types and Zod schemas are imported from `@notes/shared`. Never redefine them locally.
 - TipTap editor config (allowed extensions) must match the shared content allowlist exactly.
 
 ## State management
