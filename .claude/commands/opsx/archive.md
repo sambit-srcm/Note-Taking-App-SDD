@@ -173,7 +173,11 @@ Archive a completed change in the experimental workflow.
    mv "<changeRoot>" "<planningHome.changesDir>/archive/<target-name>"
    ```
 
-6. **Display summary**
+6. **Mark the ticket Done**
+
+   Do this only after the move succeeds. If the change name contains a ticket id (`ab-1004` or `AB-1004`), find the one file under `docs/tickets/` whose name starts with that id and set its `**Status:**` to `Done`. Leave every other ticket unchanged. If no ticket file matches, say so in the summary and do not create one.
+
+7. **Display summary**
 
    Show archive completion summary including:
    - Change name
@@ -181,6 +185,7 @@ Archive a completed change in the experimental workflow.
    - Archive location
    - Spec sync status (synced / sync skipped / no delta specs)
    - Note about any warnings (incomplete artifacts/tasks)
+   - Ticket status: the file set to Done, or that no ticket file matched
 
 **Output On Success**
 
@@ -251,6 +256,7 @@ Target archive directory already exists.
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
+- Set the matching `docs/tickets/` status to Done only after the archive move succeeds
 - If sync is requested, run the `/opsx:sync` workflow inline (agent-driven)
 - Never archive while a spec sync is still in flight — run the sync inline and verify the main specs before moving `changeRoot`
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting

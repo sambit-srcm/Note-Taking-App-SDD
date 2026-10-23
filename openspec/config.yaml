@@ -32,4 +32,5 @@ operations:
   archive:
     guidance:
       - Read openspec/changes/<name>/review-log.md. Do not archive while a Critical or High finding is open. Warn and ask if the log is missing.
+      - Follow .claude/commands/opsx/archive.md for the ticket status. After a successful archive it sets the matching docs/tickets Status to Done.
       - Keep the archive summary to a few lines.
