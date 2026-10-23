@@ -10,7 +10,10 @@ export function SharedPage({ api }: { api: ReturnType<typeof createApi> }) {
     queryFn: () =>
       api.request<{ title: string; content: unknown; updatedAt: string }>(`/api/shared/${token}`),
   });
-  if (note.error instanceof ApiError) return <p role="alert">{note.error.message}</p>;
+  if (note.isError) {
+    const message = note.error instanceof ApiError ? note.error.message : 'The request failed.';
+    return <p role="alert">{message}</p>;
+  }
   if (!note.data) return <p>Loading</p>;
   return (
     <main>

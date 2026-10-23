@@ -12,6 +12,7 @@ import {
   type ResetRateLimitConfig,
 } from './auth/rateLimit.js';
 import type { AuthService } from './auth/service.js';
+import { cors } from './http/cors.js';
 import { errorHandler } from './http/errorHandler.js';
 import { NotFoundError } from './http/errors.js';
 import { requestId } from './http/requestId.js';
@@ -52,11 +53,14 @@ export interface AppDeps {
   shareReadLimit?: LimitRule;
   /** When omitted, version routes are not mounted. */
   versionService?: VersionService;
+  /** When set, browser requests from this origin are allowed. */
+  webOrigin?: string;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
   const app = express();
   app.disable('x-powered-by');
+  if (deps.webOrigin) app.use(cors(deps.webOrigin));
   app.use(requestId);
 
   // Public, unauthenticated: keep mounted before any future auth middleware.

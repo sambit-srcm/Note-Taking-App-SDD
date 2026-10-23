@@ -1,7 +1,8 @@
 import Link from '@tiptap/extension-link';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ApiError, type createApi } from '../auth/api';
 import { getSession } from '../auth/session';
@@ -17,14 +18,30 @@ export function EditorPage({ api }: { api: ReturnType<typeof createApi> }) {
   const [title, setTitle] = useState('Untitled');
   const [id, setId] = useState(noteId);
   const [draft, setDraft] = useState(emptyDoc);
+  const [hydrated, setHydrated] = useState(noteId === undefined);
+  const existing = useQuery({
+    queryKey: ['note', noteId],
+    enabled: noteId !== undefined,
+    queryFn: () =>
+      api.request<{ title: string; content: typeof emptyDoc }>(`/api/notes/${noteId}`, {
+        auth: true,
+      }),
+  });
   const editor = useEditor({
     extensions: [StarterKit.configure({ link: false }), Link.configure({ autolink: false })],
     content: emptyDoc,
     onUpdate: ({ editor: current }) => setDraft(current.getJSON() as unknown as typeof emptyDoc),
   });
+  useEffect(() => {
+    if (!existing.data || !editor) return;
+    setTitle(existing.data.title);
+    setDraft(existing.data.content);
+    editor.commands.setContent(existing.data.content, { emitUpdate: false });
+    setHydrated(true);
+  }, [existing.data, editor]);
   const autosave = useAutosave(
     JSON.stringify({ title, draft, id }),
-    editor !== null && title.trim() !== '',
+    editor !== null && hydrated && title.trim() !== '',
     async () => {
       const content = editor?.getJSON() ?? draft;
       try {
@@ -50,6 +67,7 @@ export function EditorPage({ api }: { api: ReturnType<typeof createApi> }) {
     },
   );
   if (!getSession()) return <Navigate to="/login" replace />;
+  if (existing.error instanceof ApiError) return <p role="alert">{existing.error.message}</p>;
   return (
     <main>
       <h1>Edit note</h1>
