@@ -58,6 +58,10 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **Index:** `Note(ownerId, deletedAt, createdAt DESC, id)` added by migration.
 - **Sequencing:** sort and pagination ship in AB-1005 first. The tag filter and real `tags` on list items wait for AB-1006 (`Tag`/`NoteTag` do not exist yet).
 
+## Resolved for AB-1009 (user-approved 2026-10-23)
+- Version list, read, and restore follow the drafted contract. Restore always creates a new version. A snapshot that fails the current title or TipTap rules returns `422` and does not change the note. Restoring a trashed note returns `409`.
+- **Implemented in AB-1009:** the version operations are no longer `x-proposed`.
+
 ## Resolved for AB-1008 (user-approved 2026-10-23)
 - **OPEN-2:** a view is counted inside `GET /shared/{token}`. The same anonymous browser is deduplicated for 30 minutes with an httpOnly cookie. Bots are not excluded. The count is approximate.
 - **OPEN-3:** one active link per note. A second create returns `409`. Expiry is `expiresInDays` from 1 to 30, default 7. There is no non-expiring link.

@@ -25,6 +25,7 @@ import { createSharedRouter } from './routes/share.js';
 import { createTagsRouter } from './routes/tags.js';
 import type { SearchService } from './search/service.js';
 import type { ShareService } from './share/service.js';
+import type { VersionService } from './versions/service.js';
 
 export interface AppDeps {
   /** When omitted, /api/auth routes are not mounted (health-only tests). */
@@ -49,6 +50,8 @@ export interface AppDeps {
   /** When omitted, share routes are not mounted. */
   shareService?: ShareService;
   shareReadLimit?: LimitRule;
+  /** When omitted, version routes are not mounted. */
+  versionService?: VersionService;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -82,6 +85,7 @@ export function createApp(deps: AppDeps = {}): express.Express {
         writeLimit,
         deps.tagService,
         deps.shareService,
+        deps.versionService,
       ),
     );
   }
