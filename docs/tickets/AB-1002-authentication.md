@@ -1,6 +1,6 @@
 # AB-1002 --- Authentication and Session Management
 
-**Issue Type:** Story \| **Priority:** Highest \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Highest \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `authentication`, `security`, `jwt`, `postgresql`

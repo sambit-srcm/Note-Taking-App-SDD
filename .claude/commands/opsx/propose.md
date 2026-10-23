@@ -23,18 +23,7 @@ When the user is ready to implement, they must start the apply workflow explicit
 
 ---
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
-
-**Project check:** These steps expect a project that already uses OpenSpec. Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json` (with `--store <id>` when a store is selected, since the store is then the root) and read `root`. A root object means the project is set up. `"root": null` means it is not - there is no `openspec/` directory here, and a write such as `openspec new change` would create one as a side effect. The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it.
-
-One `"root": null` is not about setup: when a `status` error message starts with `Declared in` or `Invalid store declaration in` and names this project's `openspec/config.yaml` (or `config.yml`), the project does use OpenSpec through a store it declares, which this machine cannot resolve (the store is not registered, or the `store:` line is malformed). Do not treat it as uninitialized and skip the branches below: stop before writing and show the user that error's `message` and `fix`.
-
-Otherwise, with no root, what happens next depends on how this workflow was reached:
-
-- **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for their answer.
-
-In both branches, never create the root as a side effect: do not run `openspec init` until the user asks for it, do not hand-create `openspec/` files, and do not let a command create it.
+**OpenSpec root:** Use this repo's `openspec/` directory. Run the commands below as written. Do not pass `--store`. Do not run `openspec init`.
 
 **Input**: The argument after `/opsx:propose` is the change name (kebab-case), OR a description of what the user wants to build.
 
@@ -54,9 +43,9 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 2. **Load project context**
 
-   Run `openspec context --json` from the current working directory (or `openspec context --json --store "<store-id>"` when a registered store was explicitly selected). Use the returned `root.path` as the authoritative OpenSpec root. If context reports `no_openspec_root`, stop without creating or changing any files and follow the **Project check** above for how this workflow was reached. Offer `openspec init` only for an explicit OpenSpec request, and wait for the user to request initialization. Do not initialize automatically or run `openspec new change`. After initialization, rerun this context check before continuing. For any other context failure, stop and report the error; do not fall back to the current directory or run later OpenSpec commands without the selected store.
+   Run `openspec context --json` from the repo root. Use the returned `root.path` as the OpenSpec root. If context reports `no_openspec_root` or fails, stop and report the error. Do not run `openspec new change`.
 
-   Only when context returns a resolved `root.path`, read `<root.path>/openspec/config.yaml`. Use `config.yml` only when `config.yaml` does not exist. If neither file exists, continue without project context. Do not fall back to `config.yml` if `config.yaml` is unreadable or invalid.
+   Only when context returns a resolved `root.path`, read `<root.path>/openspec/config.yaml`. If it cannot be read, continue without that context.
 
    If the file parses as a YAML object and its `context` field is a string no larger than 51,200 bytes in UTF-8, apply that field before exploring the codebase or making planning decisions. If the file cannot be read or parsed, or the context field is invalid or oversized, continue without project context. Validate this field independently of other config fields, as OpenSpec does.
 
@@ -77,33 +66,17 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
    An item still in the unresolved **Decisions** list is open. An item under a **Resolved for** section is closed for the scope named there. When this change depends on an open item, stop. Name the OPEN id and the choice it blocks, and ask the user to decide. Do not write `proposal.md`, the delta spec, `design.md`, or `tasks.md`, and do not choose the decision. Cite a decision in an artifact only after the user has approved it.
 
-4. **Determine the workflow schema**
+4. **Use the repo schema**
 
-   Use the configured default schema unless the user explicitly requests a different workflow.
-
-   **Use a different schema only if the user:**
-   - Explicitly requests a specific schema by name → use `--schema <schema-name>`
-   - Asks to "show workflows" or asks "what workflows" exist → resolve the authoritative root by running `openspec context --json` from the current working directory. If the user explicitly selected a registered store, use `openspec context --json --store "<store-id>"`. Then run `openspec schemas --json` with its working directory set to the returned `root.path` and let them choose. This preserves roots selected by a local `store:` pointer or the global `defaultStore`; when a registered store was explicitly selected, append `--store "<store-id>"` to `openspec schemas --json` as well. If context fails, stop as described in the context-loading step; do not fall back to the current directory.
-
-   Otherwise, omit `--schema` to preserve the configured default.
+   The schema is `spec-driven`, set in `openspec/config.yaml`. Do not pass `--schema`.
 
 5. **Create the change directory**
-
-   Choose one schema form below. If a registered store is selected, append `--store "<store-id>"` to that command and each later OpenSpec command shown below that accepts `--store`.
-
-   Using the configured default:
 
    ```bash
    openspec new change "<name>"
    ```
 
-   Using an explicitly requested schema:
-
-   ```bash
-   openspec new change "<name>" --schema "<schema-name>"
-   ```
-
-   This creates a scaffolded change in the planning home resolved by the CLI with `.openspec.yaml`.
+   This creates a scaffolded change with `.openspec.yaml`.
 
 6. **Get the artifact build order**
 

@@ -72,6 +72,7 @@ Performs token validation, rate limiting, expiry enforcement, cleanup of expired
 - A visitor can register using an email address and password.
 - Email identity must be normalized consistently before uniqueness checks.
 - Passwords must be stored as secure password hashes, never as plaintext.
+- A password is 12 to 128 characters, with no composition rules.
 - Duplicate normalized email addresses must be rejected.
 - The application must validate inputs and return structured errors.
 
@@ -99,7 +100,7 @@ Performs token validation, rate limiting, expiry enforcement, cleanup of expired
 - Resending an OTP invalidates the previous OTP.
 - Rate limits must apply to account and IP dimensions.
 - OTP values must not be stored or logged in a way that unnecessarily exposes credentials outside the intended development flow.
-- A successful reset invalidates the OTP and requires a new password meeting the application's password policy.
+- A successful reset invalidates the OTP and requires a new password of 12 to 128 characters, with no composition rules.
 - The API should avoid revealing whether an email address is registered.
 
 ### 5.2 Note creation and content validation

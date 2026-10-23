@@ -8,18 +8,7 @@ tags: ['workflow', 'archive', 'experimental']
 
 Archive a completed change in the experimental workflow.
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
-
-**Project check:** These steps expect a project that already uses OpenSpec. Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json` (with `--store <id>` when a store is selected, since the store is then the root) and read `root`. A root object means the project is set up. `"root": null` means it is not - there is no `openspec/` directory here, and a write such as `openspec new change` would create one as a side effect. The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it.
-
-One `"root": null` is not about setup: when a `status` error message starts with `Declared in` or `Invalid store declaration in` and names this project's `openspec/config.yaml` (or `config.yml`), the project does use OpenSpec through a store it declares, which this machine cannot resolve (the store is not registered, or the `store:` line is malformed). Do not treat it as uninitialized and skip the branches below: stop before writing and show the user that error's `message` and `fix`.
-
-Otherwise, with no root, what happens next depends on how this workflow was reached:
-
-- **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for their answer.
-
-In both branches, never create the root as a side effect: do not run `openspec init` until the user asks for it, do not hand-create `openspec/` files, and do not let a command create it.
+**OpenSpec root:** Use this repo's `openspec/` directory. Run the commands below as written. Do not pass `--store`. Do not run `openspec init`.
 
 `<capability-path>` is the spec directory relative to `specs/` (for example, `user-auth` or `identity/user-auth`). Preserve the full path from each delta spec when resolving its main spec.
 
@@ -47,7 +36,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    openspec instructions archive --change "<name>" --json
    ```
 
-   Keep the same selected-root flags on this command. This lookup is advisory and
+   This lookup is advisory and
    optional: it only supplies extra prompt inputs, so it must never block archiving.
    If it exits non-zero or returns invalid JSON — for example on an older CLI that
    does not support this command yet — continue the archive workflow with no
@@ -84,7 +73,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 3. **Check task completion status**
 
-   Run `openspec list --json` with the same selected-root flags and find the
+   Run `openspec list --json` and find the
    entry in `changes` whose `name` exactly matches the selected change.
    Require exactly one match and nonnegative integer `totalTasks` and
    `completedTasks`, with `completedTasks <= totalTasks`. The CLI resolves
@@ -116,7 +105,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    delta specs from other artifacts.
 
    **If delta specs exist:**
-   - Compare each delta spec with its corresponding main spec at `<planningHome.root>/openspec/specs/<capability-path>/spec.md` (use the store-aware `planningHome.root` from step 2, not a hardcoded repo path)
+   - Compare each delta spec with its corresponding main spec at `<planningHome.root>/openspec/specs/<capability-path>/spec.md` (use `planningHome.root` from step 2)
    - A missing main spec is **not automatically** "already synced". For a new capability, the main spec is an _output_ of the sync, not an input:
      - If the delta has MODIFIED or RENAMED requirements, report that only ADDED requirements can create a new main spec and mark that capability as sync-blocked. Never invent a requirement that has no current version.
      - Otherwise, if the delta has only REMOVED requirements and the change's `.openspec.yaml` declares `retire_capabilities: true`, the capability is already retired: count it as already synced, warn that there is nothing left to remove, and do not recreate the main spec. Apply this rule both now and when verifying a completed sync.
@@ -137,8 +126,8 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - Anything else — ask again rather than archiving
 
    Before a selected sync writes any main spec, run
-   `openspec instructions specs --change "<name>" --json` once with the same
-   selected-root flags. Require a zero exit status and valid artifact-instruction
+   `openspec instructions specs --change "<name>" --json` once.
+   Require a zero exit status and valid artifact-instruction
    JSON. If the lookup fails or returns invalid JSON, report the error and stop
    before writing any main spec or moving the change. A valid response with omitted
    `rules` is the no-rules case. Apply returned `rules` only to the content and
