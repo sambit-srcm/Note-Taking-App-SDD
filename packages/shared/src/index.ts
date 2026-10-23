@@ -11,6 +11,18 @@ export {
 export { errorFieldSchema, errorResponseSchema } from './schemas/error.js';
 export { healthResponseSchema } from './schemas/health.js';
 export {
+  shareCreateSchema,
+  shareLinkCreatedSchema,
+  shareLinkSchema,
+  sharedNoteSchema,
+} from './schemas/share.js';
+export {
+  SHARE_EXPIRY_DEFAULT_DAYS,
+  SHARE_EXPIRY_MAX_DAYS,
+  SHARE_EXPIRY_MIN_DAYS,
+  SHARE_VIEW_DEDUPE_MS,
+} from './constants/share.js';
+export {
   noteContentSchema,
   noteIdParamSchema,
   noteInputSchema,
@@ -84,5 +96,6 @@ export type {
   SearchQuery,
   SearchResult,
   SearchResultPage,
+  ShareCreate,
   User,
 } from './types/index.js';

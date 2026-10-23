@@ -12,6 +12,7 @@ import { getPrismaClient } from './db/prisma.js';
 import { logger } from './http/logger.js';
 import { createNoteService } from './notes/service.js';
 import { createSearchService } from './search/service.js';
+import { createShareService } from './share/service.js';
 import { createTagService } from './tags/service.js';
 
 try {
@@ -38,6 +39,7 @@ try {
     noteWriteLimit: noteWriteLimitFromEnv(env),
     tagService: createTagService({ prisma }),
     searchService: createSearchService({ prisma }),
+    shareService: createShareService({ prisma }),
     searchLimit: searchLimitFromEnv(env),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {

@@ -62,6 +62,7 @@ export function searchLimitFromEnv(env: Env): LimitRule {
 
 export const DEFAULT_NOTE_WRITE_LIMIT: LimitRule = { max: 60, windowMs: 60_000 };
 export const DEFAULT_SEARCH_LIMIT: LimitRule = { max: 30, windowMs: 60_000 };
+export const DEFAULT_SHARE_READ_LIMIT: LimitRule = { max: 60, windowMs: 60_000 };
 
 export const DEFAULT_RESET_RATE_LIMITS: ResetRateLimitConfig = {
   request: { max: 5, windowMs: 3_600_000 },

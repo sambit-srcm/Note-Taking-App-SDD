@@ -65,9 +65,10 @@ model Note {
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
 
-  owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  versions NoteVersion[]
-  noteTags NoteTag[]
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  versions   NoteVersion[]
+  noteTags   NoteTag[]
+  shareLinks ShareLink[]
 
   @@index([ownerId, deletedAt, updatedAt(sort: Desc), id])
   @@index([ownerId, deletedAt, createdAt(sort: Desc), id])
@@ -110,4 +111,29 @@ model NoteTag {
 
   @@id([noteId, tagId])
   @@index([tagId])
+}
+
+model ShareLink {
+  id        String    @id @default(uuid()) @db.Uuid
+  noteId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  viewCount Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  note  Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  views ShareView[]
+
+  @@index([noteId, createdAt])
+}
+
+model ShareView {
+  shareLinkId String   @db.Uuid
+  viewerHash  String
+  countedAt   DateTime
+
+  shareLink ShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+
+  @@id([shareLinkId, viewerHash])
 }

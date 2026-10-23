@@ -263,8 +263,7 @@ paths:
     post:
       tags: [Sharing]
       summary: Create share link for a non-deleted own note
-      description: One active link per note (OPEN-3). Token returned only in this response.
-      x-proposed: true
+      description: One active link per note. A second create returns 409. Token returned only in this response.
       requestBody:
         content:
           application/json:
@@ -282,7 +281,6 @@ paths:
     get:
       tags: [Sharing]
       summary: Share status, expiry, view count (owner)
-      x-proposed: true
       responses:
         '200': { description: Status, content: { application/json: { schema: { $ref: '#/components/schemas/ShareLink' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -290,7 +288,6 @@ paths:
     delete:
       tags: [Sharing]
       summary: Revoke share link
-      x-proposed: true
       responses:
         '204': { description: Revoked }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -302,8 +299,7 @@ paths:
       description: |
         No authentication. Restricted response path: title, content, updatedAt only.
         Expired/revoked/invalid/deleted-note links all return the same 404.
-        View counting and 30-minute anonymous dedupe: mechanism OPEN-2.
-      x-proposed: true
+        A view is counted on this response. The same browser is deduplicated for 30 minutes by cookie.
       security: []
       parameters:
         - { name: token, in: path, required: true, schema: { type: string } }
