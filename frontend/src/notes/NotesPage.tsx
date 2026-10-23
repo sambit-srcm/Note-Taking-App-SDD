@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError, type createApi } from '../auth/api';
 import { clearSession, getSession } from '../auth/session';
 import { NoteList } from './NoteList';
@@ -76,6 +76,8 @@ export function NotesPage({ api }: { api: ReturnType<typeof createApi> }) {
     <main>
       <h1>Notes</h1>
       <p>Your notes</p>
+      <Link to="/search">Search</Link>
+      <Link to="/notes/new">New note</Link>
       <button type="button" onClick={() => logout.mutate()}>
         Log out
       </button>
