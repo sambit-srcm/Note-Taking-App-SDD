@@ -22,6 +22,14 @@ export {
   noteUpdateSchema,
 } from './schemas/notes.js';
 export {
+  highlightSchema,
+  searchQuerySchema,
+  searchResultPageSchema,
+  searchResultSchema,
+  searchTermSchema,
+} from './schemas/search.js';
+export { SEARCH_QUERY_MAX_CODE_POINTS } from './constants/search.js';
+export {
   tagIdParamSchema,
   tagInputSchema,
   tagListSchema,
@@ -72,5 +80,9 @@ export type {
   PasswordResetRequest,
   RefreshRequest,
   RegisterRequest,
+  SearchHighlight,
+  SearchQuery,
+  SearchResult,
+  SearchResultPage,
   User,
 } from './types/index.js';

@@ -53,7 +53,15 @@ export function noteWriteLimitFromEnv(env: Env): LimitRule {
   };
 }
 
+export function searchLimitFromEnv(env: Env): LimitRule {
+  return {
+    max: env.SEARCH_RATE_LIMIT_MAX,
+    windowMs: env.SEARCH_RATE_LIMIT_WINDOW_SECONDS * 1000,
+  };
+}
+
 export const DEFAULT_NOTE_WRITE_LIMIT: LimitRule = { max: 60, windowMs: 60_000 };
+export const DEFAULT_SEARCH_LIMIT: LimitRule = { max: 30, windowMs: 60_000 };
 
 export const DEFAULT_RESET_RATE_LIMITS: ResetRateLimitConfig = {
   request: { max: 5, windowMs: 3_600_000 },
@@ -130,4 +138,9 @@ export function createNoteWriteLimiters(rule: LimitRule): RequestHandler[] {
     build(rule, (req) => ipKeyGenerator(req.ip ?? '')),
     build(rule, (req) => (req.userId === undefined ? undefined : `user:${req.userId}`)),
   ];
+}
+
+/** Search: the same per-IP and per-user counters as note writes, each call with its own store. Mount after auth. */
+export function createSearchLimiters(rule: LimitRule): RequestHandler[] {
+  return createNoteWriteLimiters(rule);
 }

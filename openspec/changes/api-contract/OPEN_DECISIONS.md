@@ -13,7 +13,7 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 4. **Sort options** (FRS-NOTE-004 says "sorting" but only the default is defined): drafted `updatedAt|createdAt|title` + `order`. `createdAt` presence on Note is inferred from SDS "timestamps".
 5. **Invalid pagination**: FRS allows reject *or* normalize "per the shared API contract". Drafted: reject with 422.
 6. **Editing a trashed note**: FRS silent. Drafted as not allowed (404/409 to decide); `GET` of trashed note by owner allowed.
-7. **Search edge cases** (FRS-SEARCH-001): behavior for empty / punctuation-only queries (422 vs empty result), highlight marker format, and ordering (rank then id?).
+7. **Search edge cases** (resolved for AB-1007, see below) (FRS-SEARCH-001): behavior for empty / punctuation-only queries (422 vs empty result), highlight marker format, and ordering (rank then id?).
 8. **OTP details** (resolved for AB-1003, see below): OTP format/length; status for wrong/expired/exhausted OTP (drafted 401; alternative 422); whether confirm is one step (drafted) or verify-then-reset.
 9. **Registration duplicate email**: FRS-AUTH-001 requires rejecting duplicates (409) while FRS-AUTH-004 says avoid revealing registered emails. 409 on register leaks existence; accept or mitigate?
 10. **ID type**: UUID drafted; SDS says only "ID". Cursor vs page pagination also drafted as page/pageSize + total.
@@ -57,6 +57,15 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **`tagIds`:** comma-separated UUIDs, at most 10, duplicates collapse, AND semantics, empty or absent means no filter.
 - **Index:** `Note(ownerId, deletedAt, createdAt DESC, id)` added by migration.
 - **Sequencing:** sort and pagination ship in AB-1005 first. The tag filter and real `tags` on list items wait for AB-1006 (`Tag`/`NoteTag` do not exist yet).
+
+## Resolved for AB-1007 (user-approved 2026-10-23, all four recommended options chosen)
+- **OPEN-7:** blank, punctuation-only (no Unicode letter or digit), over-long (more than 200 code points after trim), or missing `q` returns `422 VALIDATION_ERROR`. Query-operator characters are plain input. A valid query that reduces to nothing searchable (stop words) returns `200` with an empty page.
+- **Highlights:** `snippet` is plain text; `highlights` is `[{start, end}]` (UTF-16 code units, end exclusive). No markup in the response.
+- **Order and language:** rank descending, then `id` ascending. PostgreSQL `english` configuration (stemming).
+- **Paging:** `page`/`pageSize` as `GET /notes` (default 20, max 100); invalid values return `422`.
+- **Rate limit:** search 30 per 60 s, per IP and per user (`SEARCH_RATE_LIMIT_{MAX,WINDOW_SECONDS}`).
+- **Searchable prefix (user-approved 2026-10-23, review finding R1):** only the first 200,000 characters of a note's searchable text (title first) are indexed and matched. `to_tsvector` fails above 1 MiB, and a content-valid note can reach that, so an unbounded index would make note writes return `500`. Longer notes still save and read back unchanged; text past the bound is not searchable. FRS-SEARCH-001 states no such limit, so the FRS owner should be told.
+- **Implemented in AB-1007:** `GET /search` is no longer `x-proposed`. `SearchResult` is `{id, title, snippet, highlights, updatedAt}`. A GIN index over `to_tsvector('english', "searchText")` serves the query; Prisma does not model it, so `prisma migrate diff` stays silent about it. The headline step swaps `<` and `>` for private-use placeholders so a note's own tag-like text survives in the snippet.
 
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.

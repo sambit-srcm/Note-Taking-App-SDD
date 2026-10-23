@@ -4,12 +4,14 @@ import {
   noteWriteLimitFromEnv,
   rateLimitConfigFromEnv,
   resetRateLimitConfigFromEnv,
+  searchLimitFromEnv,
 } from './auth/rateLimit.js';
 import { createAuthService } from './auth/service.js';
 import { EnvError, formatEnvIssues, loadEnv } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { logger } from './http/logger.js';
 import { createNoteService } from './notes/service.js';
+import { createSearchService } from './search/service.js';
 import { createTagService } from './tags/service.js';
 
 try {
@@ -35,6 +37,8 @@ try {
     noteService: createNoteService({ prisma }),
     noteWriteLimit: noteWriteLimitFromEnv(env),
     tagService: createTagService({ prisma }),
+    searchService: createSearchService({ prisma }),
+    searchLimit: searchLimitFromEnv(env),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {
   if (err instanceof EnvError) {
