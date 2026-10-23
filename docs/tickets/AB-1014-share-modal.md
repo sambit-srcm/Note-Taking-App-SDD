@@ -1,6 +1,6 @@
 # AB-1014 --- Share Modal
 
-**Issue Type:** Story \| **Priority:** Medium \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Medium \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `share`, `ui`
