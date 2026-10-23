@@ -52,7 +52,15 @@ Content SHALL be accepted only as canonical TipTap JSON using approved nodes, ma
 
 #### Scenario: Oversized request body
 - **WHEN** the request body exceeds the HTTP cap
-- **THEN** it is rejected with the approved status (`413` proposed) and nothing is persisted
+- **THEN** it is rejected with `413` and the standard error shape, and nothing is persisted
+
+### Requirement: Unstorable characters are rejected
+Titles and document text (text nodes, code language, link href) SHALL NOT contain U+0000 or unpaired surrogates, which the database cannot store. They SHALL be rejected with `422`, never altered, and nothing SHALL be persisted.
+
+#### Scenario: Unstorable character
+- **WHEN** a title or text node contains U+0000 or a lone surrogate
+- **THEN** the response is `422` and nothing is persisted
+- **AND** a valid surrogate pair such as an emoji is accepted
 
 ### Requirement: Read a note
 The owner SHALL be able to read a note by id, including a trashed one (FRS-NOTE-002).
@@ -105,7 +113,7 @@ Deleting a note SHALL set `deletedAt` and nothing else. A deleted note SHALL be 
 
 #### Scenario: Editing a trashed note
 - **WHEN** the owner updates a trashed note
-- **THEN** it is rejected with the approved status (OPEN-6) and nothing changes
+- **THEN** it is rejected with `409` and nothing changes
 
 ### Requirement: Restore within the recovery window
 The owner SHALL be able to restore a trashed note up to 30 days after `deletedAt`. Restoring SHALL clear `deletedAt`. Repeating the restore SHALL return the same result. No note SHALL be physically deleted during the window (FRS-NOTE-003).

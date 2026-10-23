@@ -33,7 +33,7 @@ An OTP SHALL expire 10 minutes after issue, allow at most 5 incorrect verificati
 
 #### Scenario: Rejected OTPs
 - **WHEN** the OTP is incorrect, expired, already consumed, or invalidated by a resend
-- **THEN** the request is rejected with the approved status (OPEN-8) and the password is unchanged
+- **THEN** the request is rejected with `401` and the password is unchanged
 
 #### Scenario: Attempts exhausted
 - **WHEN** 5 incorrect OTPs have been submitted for a challenge
