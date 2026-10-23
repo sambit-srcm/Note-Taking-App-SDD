@@ -5,6 +5,7 @@ import { ApiError, createApi } from './auth/api';
 import { setSession } from './auth/session';
 import { EditorPage } from './notes/EditorPage';
 import { SearchPage } from './notes/SearchPage';
+import { SharedPage } from './notes/SharedPage';
 import { NotesPage } from './notes/NotesPage';
 
 function fieldMessage(error: unknown, path: string): string | undefined {
@@ -28,6 +29,7 @@ export default function App({ apiUrl = 'http://127.0.0.1:3000' }: { apiUrl?: str
       <Route path="/reset/confirm" element={<ResetConfirm api={api} />} />
       <Route path="/notes" element={<NotesPage api={api} />} />
       <Route path="/search" element={<SearchPage api={api} />} />
+      <Route path="/shared/:token" element={<SharedPage api={api} />} />
       <Route path="/notes/new" element={<EditorPage api={api} />} />
       <Route path="/notes/:noteId" element={<EditorPage api={api} />} />
     </Routes>
