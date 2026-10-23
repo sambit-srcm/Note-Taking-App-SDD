@@ -5,6 +5,7 @@ import {
   DEFAULT_NOTE_WRITE_LIMIT,
   DEFAULT_RATE_LIMITS,
   DEFAULT_RESET_RATE_LIMITS,
+  DEFAULT_SEARCH_LIMIT,
   type LimitRule,
   type RateLimitConfig,
   type ResetRateLimitConfig,
@@ -18,7 +19,9 @@ import type { TagService } from './tags/service.js';
 import { createAuthRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { createNotesRouter } from './routes/notes.js';
+import { createSearchRouter } from './routes/search.js';
 import { createTagsRouter } from './routes/tags.js';
+import type { SearchService } from './search/service.js';
 
 export interface AppDeps {
   /** When omitted, /api/auth routes are not mounted (health-only tests). */
@@ -37,6 +40,9 @@ export interface AppDeps {
   noteWriteLimit?: LimitRule;
   /** When omitted, the /api/tags routes are not mounted. */
   tagService?: TagService;
+  /** When omitted, the /api/search route is not mounted. */
+  searchService?: SearchService;
+  searchLimit?: LimitRule;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -69,6 +75,13 @@ export function createApp(deps: AppDeps = {}): express.Express {
   }
   if (deps.tagService) {
     app.use('/api/tags', createTagsRouter(deps.tagService, jwtSecret, writeLimit));
+  }
+
+  if (deps.searchService) {
+    app.use(
+      '/api/search',
+      createSearchRouter(deps.searchService, jwtSecret, deps.searchLimit ?? DEFAULT_SEARCH_LIMIT),
+    );
   }
 
   app.use((_req, _res, next) => next(new NotFoundError()));
