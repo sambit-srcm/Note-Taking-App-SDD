@@ -3,6 +3,7 @@ import {
   noteInputSchema,
   noteListQuerySchema,
   noteUpdateSchema,
+  tagIdParamSchema,
 } from '@notes/shared';
 import { Router } from 'express';
 import { requireAuth } from '../auth/requireAuth.js';
@@ -10,11 +11,13 @@ import { createNoteWriteLimiters, type LimitRule } from '../auth/rateLimit.js';
 import { noteJsonBody } from '../http/jsonBody.js';
 import { parseBody } from '../http/validate.js';
 import type { NoteService } from '../notes/service.js';
+import type { TagService } from '../tags/service.js';
 
 export function createNotesRouter(
   notes: NoteService,
   jwtSecret: string,
   writeLimit: LimitRule,
+  tags?: TagService,
 ): Router {
   const router = Router();
   const writeLimiters = createNoteWriteLimiters(writeLimit);
@@ -53,6 +56,19 @@ export function createNotesRouter(
   router.post('/:noteId/restore', async (req, res) => {
     res.status(200).json(await notes.restoreNote(owner(req), noteId(req.params)));
   });
+
+  if (tags) {
+    const tagId = (params: { tagId?: string | undefined }): string =>
+      parseBody(tagIdParamSchema, params.tagId);
+    router.put('/:noteId/tags/:tagId', ...writeLimiters, async (req, res) => {
+      await tags.assignTag(owner(req), noteId(req.params), tagId(req.params));
+      res.status(204).end();
+    });
+    router.delete('/:noteId/tags/:tagId', ...writeLimiters, async (req, res) => {
+      await tags.unassignTag(owner(req), noteId(req.params), tagId(req.params));
+      res.status(204).end();
+    });
+  }
 
   return router;
 }

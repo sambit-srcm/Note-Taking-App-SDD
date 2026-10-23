@@ -47,6 +47,10 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **Other:** non-UUID `noteId` returns `422`. Trash and restore keep `updatedAt`. Restore and the trash list use a 30-day window from `deletedAt`; after it, restore returns `404`.
 - **Implemented in AB-1004:** the six note operations are no longer `x-proposed`.
 
+## Resolved for AB-1006 (user-approved 2026-10-23)
+- **OPEN-14:** the display name is the trimmed input. Uniqueness is the lowercased trimmed name per owner. Maximum 50 Unicode code points. `noteCount` counts notes with `deletedAt` null. U+0000 and unpaired surrogates are rejected with `422`. Duplicate normalized names return `409`.
+- **Implemented in AB-1006:** the tag and assignment operations are no longer `x-proposed`.
+
 ## Resolved for AB-1005 (user-approved 2026-10-22, "approve all five recommendations")
 - **OPEN-4:** `sort` is `updatedAt|createdAt|title`, `order` is `asc|desc`; default `updatedAt desc`. `id` ascending is always the final tie-breaker. `title` sorts with the plain, case-sensitive database collation.
 - **OPEN-5:** invalid `page`, `pageSize`, `sort`, `order`, or `tagIds` returns `422`; nothing is normalized.

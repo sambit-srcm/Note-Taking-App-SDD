@@ -14,9 +14,11 @@ import { errorHandler } from './http/errorHandler.js';
 import { NotFoundError } from './http/errors.js';
 import { requestId } from './http/requestId.js';
 import type { NoteService } from './notes/service.js';
+import type { TagService } from './tags/service.js';
 import { createAuthRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { createNotesRouter } from './routes/notes.js';
+import { createTagsRouter } from './routes/tags.js';
 
 export interface AppDeps {
   /** When omitted, /api/auth routes are not mounted (health-only tests). */
@@ -33,6 +35,8 @@ export interface AppDeps {
   /** When omitted, the /api/notes routes are not mounted. */
   noteService?: NoteService;
   noteWriteLimit?: LimitRule;
+  /** When omitted, the /api/tags routes are not mounted. */
+  tagService?: TagService;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -56,15 +60,15 @@ export function createApp(deps: AppDeps = {}): express.Express {
     );
   }
 
+  const writeLimit = deps.noteWriteLimit ?? DEFAULT_NOTE_WRITE_LIMIT;
   if (deps.noteService) {
     app.use(
       '/api/notes',
-      createNotesRouter(
-        deps.noteService,
-        jwtSecret,
-        deps.noteWriteLimit ?? DEFAULT_NOTE_WRITE_LIMIT,
-      ),
+      createNotesRouter(deps.noteService, jwtSecret, writeLimit, deps.tagService),
     );
+  }
+  if (deps.tagService) {
+    app.use('/api/tags', createTagsRouter(deps.tagService, jwtSecret, writeLimit));
   }
 
   app.use((_req, _res, next) => next(new NotFoundError()));

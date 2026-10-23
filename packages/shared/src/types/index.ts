@@ -12,6 +12,7 @@ import type {
 import type { errorFieldSchema, errorResponseSchema } from '../schemas/error.js';
 import type { healthResponseSchema } from '../schemas/health.js';
 import type { noteInputSchema, noteListQuerySchema, noteUpdateSchema } from '../schemas/notes.js';
+import type { tagInputSchema } from '../schemas/tags.js';
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
@@ -27,3 +28,4 @@ export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 export type NoteInput = z.infer<typeof noteInputSchema>;
 export type NoteUpdate = z.infer<typeof noteUpdateSchema>;
 export type NoteListQuery = z.infer<typeof noteListQuerySchema>;
+export type TagInput = z.infer<typeof tagInputSchema>;

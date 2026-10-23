@@ -10,6 +10,7 @@ import { EnvError, formatEnvIssues, loadEnv } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { logger } from './http/logger.js';
 import { createNoteService } from './notes/service.js';
+import { createTagService } from './tags/service.js';
 
 try {
   const env = loadEnv();
@@ -33,6 +34,7 @@ try {
     resetRateLimits: resetRateLimitConfigFromEnv(env),
     noteService: createNoteService({ prisma }),
     noteWriteLimit: noteWriteLimitFromEnv(env),
+    tagService: createTagService({ prisma }),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {
   if (err instanceof EnvError) {
