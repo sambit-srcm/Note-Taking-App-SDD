@@ -48,6 +48,13 @@ export {
   tagNameSchema,
   tagSchema,
 } from './schemas/tags.js';
+export {
+  versionIdParamSchema,
+  versionListQuerySchema,
+  versionSchema,
+  versionSummaryPageSchema,
+  versionSummarySchema,
+} from './schemas/versions.js';
 export { canonicalize, validateTipTapDoc } from './schemas/tiptap.js';
 export type {
   TipTapDoc,

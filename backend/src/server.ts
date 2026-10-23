@@ -14,6 +14,7 @@ import { createNoteService } from './notes/service.js';
 import { createSearchService } from './search/service.js';
 import { createShareService } from './share/service.js';
 import { createTagService } from './tags/service.js';
+import { createVersionService } from './versions/service.js';
 
 try {
   const env = loadEnv();
@@ -40,6 +41,7 @@ try {
     tagService: createTagService({ prisma }),
     searchService: createSearchService({ prisma }),
     shareService: createShareService({ prisma }),
+    versionService: createVersionService({ prisma }),
     searchLimit: searchLimitFromEnv(env),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {

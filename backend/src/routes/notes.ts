@@ -13,7 +13,9 @@ import { parseBody } from '../http/validate.js';
 import type { NoteService } from '../notes/service.js';
 import type { ShareService } from '../share/service.js';
 import type { TagService } from '../tags/service.js';
+import type { VersionService } from '../versions/service.js';
 import { mountOwnerShare } from './share.js';
+import { mountVersionRoutes } from './versions.js';
 
 export function createNotesRouter(
   notes: NoteService,
@@ -21,6 +23,7 @@ export function createNotesRouter(
   writeLimit: LimitRule,
   tags?: TagService,
   shares?: ShareService,
+  versions?: VersionService,
 ): Router {
   const router = Router();
   const writeLimiters = createNoteWriteLimiters(writeLimit);
@@ -74,6 +77,7 @@ export function createNotesRouter(
   }
 
   if (shares) mountOwnerShare(router, shares, writeLimit);
+  if (versions) mountVersionRoutes(router, versions);
 
   return router;
 }

@@ -313,7 +313,6 @@ paths:
     get:
       tags: [Versions]
       summary: List versions (owner only)
-      x-proposed: true
       parameters:
         - { $ref: '#/components/parameters/NoteId' }
         - { $ref: '#/components/parameters/Page' }
@@ -326,7 +325,6 @@ paths:
     get:
       tags: [Versions]
       summary: Inspect a version
-      x-proposed: true
       parameters: [{ $ref: '#/components/parameters/NoteId' }, { $ref: '#/components/parameters/VersionId' }]
       responses:
         '200': { description: Version, content: { application/json: { schema: { $ref: '#/components/schemas/Version' } } } }
@@ -336,7 +334,6 @@ paths:
     post:
       tags: [Versions]
       summary: Restore version atomically; recorded as a new version (FRS-VERSION-002)
-      x-proposed: true
       parameters: [{ $ref: '#/components/parameters/NoteId' }, { $ref: '#/components/parameters/VersionId' }]
       responses:
         '200': { description: Note after restore, content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } } }

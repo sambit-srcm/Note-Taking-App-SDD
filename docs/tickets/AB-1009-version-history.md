@@ -1,6 +1,6 @@
 # AB-1009 --- Version History API
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `versions`, `notes`
