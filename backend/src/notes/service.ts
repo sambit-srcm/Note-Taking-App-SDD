@@ -6,6 +6,7 @@ import {
 } from '@notes/shared';
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { ConflictError, NotFoundError } from '../http/errors.js';
+import type { TagDto } from '../tags/service.js';
 import { extractSearchText } from './searchText.js';
 
 const RETENTION_MS = NOTE_TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -22,7 +23,7 @@ export interface NoteDto {
 export interface NoteSummaryDto {
   id: string;
   title: string;
-  tags: never[];
+  tags: TagDto[];
   updatedAt: Date;
   deletedAt: Date | null;
 }
@@ -148,12 +149,12 @@ export function createNoteService({ prisma, now = () => new Date() }: Deps): Not
     },
 
     async listNotes(ownerId, { page, pageSize, trash, sort, order, tagIds }) {
-      // Interim until AB-1006 adds Tag/NoteTag (task 4.1 replaces this): no tag can exist, so an
-      // AND filter on any tag matches nothing. Never fall through to the unfiltered list.
-      if (tagIds.length > 0) return { items: [], pagination: { page, pageSize, total: 0 } };
+      // One clause per tag gives AND semantics. Scoping by the tag's owner means a foreign or
+      // unknown tag matches nothing, so the result never reveals whether it exists.
       const where: Prisma.NoteWhereInput = {
         ownerId,
         deletedAt: trash ? { gt: cutoff() } : null,
+        AND: tagIds.map((tagId) => ({ noteTags: { some: { tagId, tag: { ownerId } } } })),
       };
       const [total, rows] = await Promise.all([
         prisma.note.count({ where }),
@@ -163,11 +164,39 @@ export function createNoteService({ prisma, now = () => new Date() }: Deps): Not
           orderBy: [{ [sort]: order }, { id: 'asc' }],
           skip: (page - 1) * pageSize,
           take: pageSize,
-          select: { id: true, title: true, updatedAt: true, deletedAt: true },
+          select: {
+            id: true,
+            title: true,
+            updatedAt: true,
+            deletedAt: true,
+            noteTags: {
+              where: { tag: { ownerId } },
+              select: { tag: { select: { id: true, name: true } } },
+            },
+          },
         }),
       ]);
+
+      // Two queries for the whole page, whatever its size: the relation select above and one
+      // grouped count here. Counts match the tag list: the owner's non-deleted notes only.
+      const pageTagIds = [...new Set(rows.flatMap((r) => r.noteTags.map((nt) => nt.tag.id)))];
+      const counts = new Map<string, number>();
+      if (pageTagIds.length > 0) {
+        const grouped = await prisma.noteTag.groupBy({
+          by: ['tagId'],
+          where: { tagId: { in: pageTagIds }, note: { ownerId, deletedAt: null } },
+          _count: { _all: true },
+        });
+        for (const g of grouped) counts.set(g.tagId, g._count._all);
+      }
+
       return {
-        items: rows.map((r) => ({ ...r, tags: [] })),
+        items: rows.map(({ noteTags, ...r }) => ({
+          ...r,
+          tags: noteTags
+            .map(({ tag }) => ({ id: tag.id, name: tag.name, noteCount: counts.get(tag.id) ?? 0 }))
+            .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1)),
+        })),
         pagination: { page, pageSize, total },
       };
     },

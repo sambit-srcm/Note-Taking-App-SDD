@@ -805,6 +805,116 @@ describe('GET /api/notes sorting and paging (FRS-NOTE-004)', () => {
     });
   });
 
+  // FRS-TAG-002 / FRS-NOTE-004 spec scenarios for GET /notes (tag filter, sort, trash).
+  describe('tag filter scenarios (FRS-TAG-002)', () => {
+    const T1 = randomUUID();
+    const T2 = randomUUID();
+    const ten = Array.from({ length: 10 }, () => randomUUID());
+
+    it('401 UNAUTHORIZED with tagIds and no token; service not called', async () => {
+      const svc = fakeService();
+      expectError(await request(build(svc)).get(`/api/notes?tagIds=${T1}`), 401, 'UNAUTHORIZED');
+      expect(svc.count()).toBe(0);
+    });
+
+    it.each([
+      ['non-UUID', 'tagIds=not-a-uuid'],
+      ['one bad element in a list', `tagIds=${T1},nope`],
+      ['empty element (trailing comma)', `tagIds=${T1},`],
+      ['empty element (leading comma)', `tagIds=,${T1}`],
+      ['empty element (double comma)', `tagIds=${T1},,${T2}`],
+      ['whitespace element', `tagIds=${T1},%20`],
+      ['numeric id', 'tagIds=123'],
+    ])('422 VALIDATION_ERROR for %s; service not called', async (_n, qs) => {
+      const svc = fakeService();
+      const res = await request(build(svc))
+        .get(`/api/notes?${qs}`)
+        .set('Authorization', await auth());
+      const parsed = expectError(res, 422, 'VALIDATION_ERROR');
+      expect(parsed.error.fields?.length).toBeGreaterThan(0);
+      expect(svc.count()).toBe(0);
+    });
+
+    it('422 for 11 ids even when valid and distinct; 200 at the 10-id boundary', async () => {
+      const svc = fakeService();
+      const app = build(svc);
+      const h = await auth();
+      const over = await request(app)
+        .get(`/api/notes?tagIds=${[...ten, randomUUID()].join(',')}`)
+        .set('Authorization', h);
+      expectError(over, 422, 'VALIDATION_ERROR');
+      expect(svc.count()).toBe(0);
+      const ok = await request(app)
+        .get(`/api/notes?tagIds=${ten.join(',')}`)
+        .set('Authorization', h);
+      expect(ok.status).toBe(200);
+      expect(svc.calls[0]?.args[1]).toMatchObject({ tagIds: ten });
+    });
+
+    it('passes the parsed array to the service in request order, owner from the token', async () => {
+      const svc = fakeService();
+      seed(svc);
+      const res = await request(build(svc))
+        .get(`/api/notes?tagIds=${T2},${T1}`)
+        .set('Authorization', await auth());
+      expect(res.status).toBe(200);
+      expect(svc.calls[0]?.args[0]).toBe(USER_A);
+      expect(svc.calls[0]?.args[1]).toMatchObject({ tagIds: [T2, T1] });
+    });
+
+    it('combines tagIds with page, pageSize, sort, order and trash in one parsed query', async () => {
+      const svc = fakeService();
+      seed(svc, USER_A, { deletedAt: new Date() });
+      const res = await request(build(svc))
+        .get(`/api/notes?trash=true&sort=title&order=asc&page=2&pageSize=5&tagIds=${T1},${T2}`)
+        .set('Authorization', await auth());
+      expect(res.status).toBe(200);
+      noteSummaryPageSchema.parse(res.body);
+      expect(svc.calls[0]).toEqual({
+        fn: 'listNotes',
+        args: [
+          USER_A,
+          { page: 2, pageSize: 5, trash: true, sort: 'title', order: 'asc', tagIds: [T1, T2] },
+        ],
+      });
+    });
+
+    it('trash=true with tagIds still validates: bad tag id gives 422', async () => {
+      const svc = fakeService();
+      const res = await request(build(svc))
+        .get('/api/notes?trash=true&tagIds=bad')
+        .set('Authorization', await auth());
+      expectError(res, 422, 'VALIDATION_ERROR');
+      expect(svc.count()).toBe(0);
+    });
+
+    it('an invalid sort alongside valid tagIds is 422 and the service is not called', async () => {
+      const svc = fakeService();
+      const res = await request(build(svc))
+        .get(`/api/notes?tagIds=${T1}&sort=bogus&order=sideways`)
+        .set('Authorization', await auth());
+      expectError(res, 422, 'VALIDATION_ERROR');
+      expect(svc.count()).toBe(0);
+    });
+
+    it('a service result with empty items for a tag filter is a 200 empty page, total 0', async () => {
+      const svc = fakeService();
+      svc.listNotes = async (owner, query) => {
+        svc.calls.push({ fn: 'listNotes', args: [owner, query] });
+        return {
+          items: [],
+          pagination: { page: query.page, pageSize: query.pageSize, total: 0 },
+        };
+      };
+      const res = await request(build(svc))
+        .get(`/api/notes?tagIds=${T1}`)
+        .set('Authorization', await auth());
+      expect(res.status).toBe(200);
+      expect(res.body.items).toEqual([]);
+      expect(res.body.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
+    });
+  });
+
   it('accepts the page bounds: pageSize 1 and 100, a very large page', async () => {
     const svc = fakeService();
     seed(svc);
