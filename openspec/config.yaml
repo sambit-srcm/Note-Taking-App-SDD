@@ -2,34 +2,33 @@ schema: spec-driven
 
 context: |
   Plan and implement through /opsx:propose, /opsx:apply, /opsx:update, /opsx:sync, /opsx:archive.
-  Acceptance criteria live in docs/FRS.md as FRS-<AREA>-<NNN> bullets. Delta specs restate only the behavior this change adds or changes.
+  Read AGENTS.md, docs/FRS.md, and docs/SDS.md before planning. Acceptance criteria are the FRS-<AREA>-<NNN> bullets.
   The approved OpenAPI contract wins over invented routes or status codes.
-  During /opsx:apply, the tester agent writes tests from those FRS bullets in parallel with implementation when the contract is known. The reviewer agent records a verdict in the change's review-log.md before archive or PR.
+  Artifact rules live only in this file. Agent launch steps live only in .claude/commands/opsx/apply.md.
 
 rules:
   proposal:
-    - Stay under about 400 words. State the change, why, and what is out of scope. No background essay.
+    - Use the sections Change, Why, Scope, Out of scope, FRS ids, and Open decisions.
+    - Write each section in enough detail to implement and review the change, including the behavior, the boundaries, and the FRS ids it covers.
+    - Do not copy the whole FRS or SDS.
   specs:
     - One delta spec per change. A small or straightforward update edits that delta. It does not add a new spec file or a new change.
     - "If the capability already exists under openspec/specs/, update that delta in place: ## ADDED Requirements for new behavior, ## MODIFIED Requirements for changed behavior, ## REMOVED Requirements for dropped behavior. Do not create a second capability folder or another ticket for a tweak."
     - Add another spec only when a capability can be implemented and verified on its own, or when one file would mix unrelated acceptance boundaries. Name that reason in the proposal.
-    - Each requirement is a short statement plus the scenarios needed to judge it. Link FRS ids. Do not copy the whole FRS.
+    - Each requirement states the behavior, the FRS id, and the scenarios needed to judge it, including the failure and ownership cases that requirement needs. Do not copy the whole FRS.
   design:
-    - Stay under about 400 words unless a security, migration, or transaction decision needs one extra paragraph.
-    - Record decisions and file-level approach. Omit restated requirements.
+    - Use the sections Approach, Files, Decisions, Transactions and security, and Open items.
+    - Record the file-level approach and every decision this change depends on. Include a security, migration, or transaction choice when the change has one.
+    - Do not restate the requirements.
   tasks:
-    - Checklist only. One task is one verifiable slice.
+    - Checklist only. One task is one verifiable slice, with the check that proves it.
     - Mark tasks that can run beside test writing as parallel.
-    - Do not add narrative, tutorials, or tasks that only say "explore the codebase".
+    - Do not add tutorials, or tasks that only say "explore the codebase".
 
 operations:
   apply:
     guidance:
-      - Invoke the tester agent in the same session as implementation. Start it once the FRS bullets and the contract the tests assert are known; do not wait for every product task to finish.
-      - The tester owns test files and derives cases from docs/FRS.md bullets for this change. The engineer owns application code and must not weaken those tests.
-      - Hold the tester only when the module path or schema it must import does not exist yet. It can still write the case matrix immediately.
-      - A test that fails because the product task is still open is expected. Do not relax the assertion.
-      - When tasks are done, run the reviewer agent before suggesting archive.
+      - Follow the agent launch in .claude/commands/opsx/apply.md. It starts .claude/agents/tester.md and .claude/agents/reviewer.md as separate agents.
   archive:
     guidance:
       - Read openspec/changes/<name>/review-log.md. Do not archive while a Critical or High finding is open. Warn and ask if the log is missing.
