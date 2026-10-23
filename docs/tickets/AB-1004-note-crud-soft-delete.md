@@ -1,6 +1,6 @@
 # AB-1004 --- Note CRUD and Soft Delete
 
-**Issue Type:** Story \| **Priority:** Highest \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Highest \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `notes`, `crud`, `soft-delete`, `validation`

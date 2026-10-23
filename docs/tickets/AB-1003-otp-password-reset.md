@@ -1,6 +1,6 @@
 # AB-1003 --- OTP Password Reset
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `authentication`, `password-reset`, `otp`, `security`

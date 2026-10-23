@@ -10,18 +10,7 @@ Sync delta specs from a change to main specs.
 
 This is an **agent-driven** operation - you will read delta specs and directly edit main specs to apply the changes. This allows intelligent merging (e.g., adding a scenario without copying the entire requirement).
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
-
-**Project check:** These steps expect a project that already uses OpenSpec. Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json` (with `--store <id>` when a store is selected, since the store is then the root) and read `root`. A root object means the project is set up. `"root": null` means it is not - there is no `openspec/` directory here, and a write such as `openspec new change` would create one as a side effect. The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it.
-
-One `"root": null` is not about setup: when a `status` error message starts with `Declared in` or `Invalid store declaration in` and names this project's `openspec/config.yaml` (or `config.yml`), the project does use OpenSpec through a store it declares, which this machine cannot resolve (the store is not registered, or the `store:` line is malformed). Do not treat it as uninitialized and skip the branches below: stop before writing and show the user that error's `message` and `fix`.
-
-Otherwise, with no root, what happens next depends on how this workflow was reached:
-
-- **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for their answer.
-
-In both branches, never create the root as a side effect: do not run `openspec init` until the user asks for it, do not hand-create `openspec/` files, and do not let a command create it.
+**OpenSpec root:** Use this repo's `openspec/` directory. Run the commands below as written. Do not pass `--store`. Do not run `openspec init`.
 
 `<capability-path>` is the spec directory relative to `specs/` (for example, `user-auth` or `identity/user-auth`). Preserve the full path from each delta spec when resolving its main spec.
 
@@ -48,7 +37,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    openspec status --change "<name>" --json
    ```
 
-   The JSON includes `planningHome.root`. Main specs live under `<planningHome.root>/openspec/specs/` — use that (store-aware) root for every main-spec path below, not a hardcoded repo path. When a store is selected it points at the store, not the current repository.
+   The JSON includes `planningHome.root`. Main specs live under `<planningHome.root>/openspec/specs/`. Use that root for every main-spec path below.
 
 3. **Find delta specs**
 
@@ -86,7 +75,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - If archive invoked this workflow inline and supplied a valid snapshot from
      `openspec instructions specs --change "<name>" --json`, reuse it and do not
      fetch the same instructions again.
-   - Otherwise run that command once now with the same selected-root flags.
+   - Otherwise run that command once now.
    - If the direct lookup exits non-zero or returns invalid artifact-instruction
      JSON, report the error and stop before writing any main spec. Do not treat the
      failure as an absent rule set.
@@ -98,7 +87,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    selected roots, delta paths, CLI checks, or workflow steps. Use their text as
    constraints without copying it verbatim into a main spec or summary.
 
-   For each capability delta spec path selected in step 3 — the full `existingOutputPaths` list, or the narrowed subset when a caller supplied one (these may belong to a selected store, not the repo):
+   For each capability delta spec path selected in step 3 — the full `existingOutputPaths` list, or the narrowed subset when a caller supplied one:
 
    a. **Read the delta spec** to understand the intended changes
 
@@ -174,7 +163,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 5. **Validate updated main specs**
 
-   Run `openspec validate --specs` with the same selected-root flags used earlier.
+   Run `openspec validate --specs`.
    If validation fails, report the problems and do not claim the sync succeeded.
 
 6. **Show summary**

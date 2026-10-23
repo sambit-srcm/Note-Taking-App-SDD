@@ -1,7 +1,6 @@
 # AB-1001 --- Project Setup and Monorepo Foundation
 
-**Issue Type:** Technical Story \| **Priority:** Highest \| **Status:**
-Backlog draft\
+**Issue Type:** Technical Story \| **Priority:** Highest \| **Status:** Done\
 **Components:** Infrastructure, Frontend, Backend, Shared\
 **Labels:** `setup`, `monorepo`, `typescript`, `tooling`
 
