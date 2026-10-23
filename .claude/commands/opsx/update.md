@@ -62,11 +62,7 @@ This workflow revises artifacts that already exist; it never creates missing one
 3. **Understand the request**
    - If the user asked for a specific revision ("the design now uses X"), that is the starting edit.
    - If they only said "update" / "make this coherent", treat it as a coherence review: read the existing artifacts and check them against each other for contradictions, gaps, and duplication.
-   - **Delta spec, not a new ticket.** If the behavior belongs to a capability that already has a spec (`openspec/specs/<capability>/spec.md`, or this change's delta for that capability), revise that delta. Do not create another change, ticket, or spec file.
-     - Behavior added: `## ADDED Requirements` in that same delta, each with at least one `#### Scenario:`.
-     - Behavior changed: `## MODIFIED Requirements` for that requirement, full text plus its scenarios.
-     - Behavior removed: `## REMOVED Requirements` naming that requirement.
-     - A second spec file is allowed only when that capability can be implemented and verified on its own. Name that reason in the proposal.
+   - **Delta spec, not a new ticket.** If the behavior belongs to a capability that already has a spec, revise that delta. Follow `openspec/config.yaml` `rules.specs` for `## ADDED`, `## MODIFIED`, and `## REMOVED Requirements`. Do not create another change, ticket, or spec file.
 
 4. **Read and reconcile**
    - Read the artifact(s) the request touches and the change's other existing artifacts.
@@ -112,4 +108,4 @@ After each invocation, show:
 - Do not advance the build frontier: if an artifact has empty `existingOutputPaths` and status `ready` or `blocked`, creating them is a separate step, outside this workflow. Leave `skipped` artifacts untouched. The only new-file scope is a confirmed concrete path under a glob artifact whose `existingOutputPaths` is non-empty.
 - Confirm every edit with the user before writing.
 - If the request changes the change's _intent_ rather than refining it, ask for a distinct unused change name and recommend `openspec new change "<new-change-name>"` instead (the "Update vs. Start Fresh" heuristic).
-- Keep revisions short. Follow `openspec/config.yaml`: one delta spec unless a capability is independently deliverable, and do not grow a proposal, design, or task list into a narrative.
+- Follow `openspec/config.yaml` `rules` for artifact shape. Do not restate those rules in this command.

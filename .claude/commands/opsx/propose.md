@@ -195,5 +195,5 @@ After completing all artifacts, summarize:
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
 - Read `AGENTS.md`, `docs/FRS.md`, `docs/SDS.md`, and `openspec/changes/api-contract/OPEN_DECISIONS.md` before writing artifacts, including when `openspec/config.yaml` was not applied. Stop while a decision this change depends on is still unresolved
-- Keep artifacts short. Follow `openspec/config.yaml` rules: one delta spec unless capabilities are independently deliverable, and no long proposal, design, or task narrative
-- If the capability already has a spec, do not open another change or ticket. Point at `/opsx:update` and revise that delta with `## ADDED`, `## MODIFIED`, or `## REMOVED Requirements`
+- Follow `openspec/config.yaml` `rules` for artifact shape. Do not restate those rules in this command
+- If the capability already has a spec, stop and point at `/opsx:update`

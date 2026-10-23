@@ -64,7 +64,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - If `state: "blocked"`: show the message and pause implementation.
      - If `missingArtifacts` is non-empty: suggest completing the missing artifacts. Run `openspec status --change "<name>" --json`, select the next `ready` artifact (not `skipped` or `blocked`), and use `openspec instructions "<artifact-id>" --change "<name>" --json` for its rules and template. Keep the selected `--store <id>` on both commands.
      - Otherwise, follow the CLI instruction to create or repair the schema-configured tracking file from existing planning artifacts. Do not assume another artifact is ready or start implementation while blocked.
-   - If `state: "all_done"`: report that tracked tasks are complete, invoke the `reviewer` agent, and point at the review log before archiving
+   - If `state: "all_done"`: report that tracked tasks are complete, then launch the reviewer as specified below before archiving
    - Otherwise: proceed to implementation
 
    Treat `context` as a required prompt-level input. Read and consider it, and
@@ -102,7 +102,14 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 6. **Implement tasks (loop until done or blocked)**
 
-   **Parallel test generation.** In the same session, invoke the `tester` agent with the change name and the `FRS-<AREA>-<NNN>` bullets this change implements. Start it once those bullets and the contract under test are known. Do not wait until every product task is done. The tester writes tests only; you keep application code. Hold the tester only when the module or schema it must import does not exist yet — it still writes the case matrix. A red test for an open product task is expected. Do not weaken it. Mark a product task complete only when its specified behavior is implemented, and mark a test task complete only when the tester's assertions for that slice exist.
+   **Launch the tester as a separate agent.** In this same session, once the FRS bullets and the contract under test are known, launch `.claude/agents/tester.md`. Do not wait until every product task is done, and do not write the tests yourself. Pass:
+
+   - change name
+   - the `FRS-<AREA>-<NNN>` ids this change implements
+   - the contract under test: this change's delta spec and the approved paths in `openspec/changes/api-contract/delta-openapi.yaml`
+   - which product tasks are already done
+
+   The tester writes tests only. You keep application code. Hold the tester only when the module or schema it must import does not exist yet. It still writes the case matrix. A red test for an open product task is expected. Do not weaken it. Mark a product task complete only when its specified behavior is implemented, and mark a test task complete only when the tester's assertions for that slice exist.
 
    For each pending task:
    - Show which task is being worked on
@@ -125,7 +132,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: report that tracked tasks are complete, invoke the `reviewer` agent, and point at the review log before archiving
+   - If all done: report that tracked tasks are complete, then launch the reviewer as specified below before archiving
    - If paused: explain why and wait for guidance
 
 **Output During Implementation**
@@ -156,7 +163,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tracked tasks are complete. Run the `reviewer` agent, then archive with `/opsx:archive` after Critical and High findings are resolved.
+All tracked tasks are complete. Launch `.claude/agents/reviewer.md` as a separate agent. Pass the change name, the same FRS ids, the same contract, and the diff for this change. The reviewer writes `openspec/changes/<name>/review-log.md` and does not edit product code. Archive with `/opsx:archive` after Critical and High findings are resolved.
 ```
 
 **Output On Pause (Issue Encountered)**

@@ -3,8 +3,7 @@
 Single source of truth for all AI tools on this team. Derived from `docs/FRS.md` and `docs/SDS.md`.
 If this file conflicts with the FRS/SDS or the approved OpenAPI contract, the spec wins — then fix this file.
 
-> **Status:** Pre-implementation. The repo currently holds specs (`docs/`, `openspec/`) and tooling (`.claude/`).
-> No `backend/`, `frontend/` or `packages/` code, `package.json`, or tests exist yet. Items marked _(planned)_ are not real yet — verify before relying on them.
+> **Status:** In progress. `frontend/`, `backend/`, and `packages/shared` exist, with specs in `docs/` and `openspec/` and tooling in `.claude/`.
 
 ## 1. Project Overview
 
@@ -15,9 +14,9 @@ Single-user-owned notes; no real-time collaboration.
 ## 2. Repository Structure
 
 ```text
-frontend/          # React app (UI, TipTap editor)                      (planned)
-backend/           # Express API, middleware, application services      (planned)
-packages/shared/   # Zod schemas, TS types, validation constants        (planned)
+frontend/          # React app (UI, TipTap editor)
+backend/           # Express API, middleware, application services
+packages/shared/   # Zod schemas, TS types, validation constants
 docs/              # FRS.md (what), SDS.md (how)
 openspec/          # Specs, changes, archives. Draft API contract: openspec/changes/api-contract/
 .claude/           # Agents (engineer, reviewer, tester), skills, /opsx commands, hooks
@@ -162,6 +161,4 @@ Planned contents (not yet created):
 
 ## 14. Change workflow
 
-`/opsx:propose` creates the change. `/opsx:apply` implements it and starts the `tester` agent once the FRS bullets and contract are known. `/opsx:update` revises artifacts. A small update edits the existing delta (`## ADDED`, `## MODIFIED`, or `## REMOVED Requirements`) and does not add a new spec file or another ticket. `/opsx:sync` merges that delta into the existing main spec. `/opsx:archive` finishes the change. `/opsx:explore` does not implement.
-
-One delta spec unless a capability is independently deliverable. Artifact length is in `openspec/config.yaml`. The `reviewer` agent writes `review-log.md` before archive or `/pr`. Open Critical or High findings block archive.
+Commands live in `.claude/commands/opsx/`. Artifact rules live only in `openspec/config.yaml`. `/opsx:apply` launches `.claude/agents/tester.md` and `.claude/agents/reviewer.md`. `/opsx:explore` does not implement.
