@@ -123,7 +123,7 @@ paths:
           schema: { type: string, enum: [asc, desc], default: desc }
         - name: tagIds
           in: query
-          description: "Comma-separated tag UUIDs, max 10, duplicates collapse. Note must have ALL selected tags (AND). Omitted/empty = no filter. x-proposed: filtering ships after AB-1006; until then the value is validated but not applied."
+          description: "Comma-separated tag UUIDs, max 10, duplicates collapse. Note must have ALL selected tags (AND). Omitted/empty = no filter. Only the caller's own tags match; a foreign or unknown tag yields an empty page."
           schema: { type: array, items: { type: string, format: uuid }, maxItems: 10 }
           style: form
           explode: false

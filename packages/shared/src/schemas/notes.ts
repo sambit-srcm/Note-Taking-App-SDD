@@ -7,6 +7,7 @@ import {
   PAGE_SIZE_MAX,
   SORT_ORDERS,
 } from '../constants/notes.js';
+import { tagSchema } from './tags.js';
 import { isStorableText, validateTipTapDoc, type TipTapDoc } from './tiptap.js';
 
 // Messages are fixed literals: they never echo the submitted title or content.
@@ -78,7 +79,7 @@ export const noteSchema = z.object({
 export const noteSummarySchema = z.object({
   id: z.uuid(),
   title: z.string(),
-  tags: z.array(z.unknown()),
+  tags: z.array(tagSchema),
   updatedAt: z.string(),
   deletedAt: z.string().nullable(),
 });

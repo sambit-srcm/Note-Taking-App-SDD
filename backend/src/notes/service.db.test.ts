@@ -24,7 +24,9 @@ import type { TipTapDoc } from '@notes/shared';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { AppError } from '../http/errors.js';
 import { ConflictError, NotFoundError } from '../http/errors.js';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { createPrismaClient } from '../db/prisma.js';
+import { PrismaClient } from '../generated/prisma/client.js';
 import { hashPassword } from '../auth/passwords.js';
 import { createNoteService } from './service.js';
 
@@ -600,7 +602,7 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
       },
     );
 
-    it('title sort is deterministic and case-sensitive: asc is the reverse of desc for distinct titles', async () => {
+    it('title sort uses the database default collation: concrete order, and asc is the reverse of desc', async () => {
       const a = await newUser();
       for (const [i, t] of ['apple', 'Apple', 'banana', 'Banana', 'APPLE'].entries())
         await seedNote(a, t, D(i + 1), idN(i + 1));
@@ -608,6 +610,9 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
       const desc = ids(await service.listNotes(a, q({ sort: 'title', order: 'desc' })));
       expect(asc).toHaveLength(5);
       expect(desc).toEqual([...asc].reverse());
+      // Compose Postgres (en_US.utf8) orders by letter first, then lower before upper case:
+      // apple, Apple, APPLE, banana, Banana. A C collation would give a different order.
+      expect(asc).toEqual([idN(1), idN(2), idN(5), idN(3), idN(4)]);
       // 'apple' and 'Apple' are different titles, never treated as ties broken by id
       const rows = await prisma.note.findMany({ where: { ownerId: a } });
       const t = (id: string) => rows.find((r) => r.id === id)?.title;
@@ -634,33 +639,300 @@ describe('listNotes (FRS-NOTE-002 list)', () => {
     });
   });
 
-  // INTERIM (AB-1005, review R1): until AB-1006 adds Tag/NoteTag, any non-empty tagIds yields an
-  // empty page. Task 4.1 replaces these interim cases with real tag-filter tests.
-  describe('tagIds interim behavior (R1)', () => {
-    it('empty tagIds returns the notes; one or two tag ids return an empty page with total 0', async () => {
+  // FRS-TAG-002 / FRS-NOTE-004: tag filter (AND, owner-scoped) and tags on list items.
+  describe('tag filter and item tags (FRS-TAG-002, AB-1005)', () => {
+    async function seedTag(ownerId: string, name: string, id: string = randomUUID()) {
+      return prisma.tag.create({
+        data: { id, ownerId, name, nameNormalized: name.toLowerCase() },
+      });
+    }
+    const attach = (noteId: string, ...tags: { id: string }[]) =>
+      prisma.noteTag.createMany({ data: tags.map((t) => ({ noteId, tagId: t.id })) });
+
+    async function world() {
       const a = await newUser();
-      const n1 = await seedNote(a, 'one', D(1));
-      const n2 = await seedNote(a, 'two', D(2));
-      const all = await service.listNotes(a, q({ tagIds: [] }));
-      expect(ids(all).sort()).toEqual([n1.id, n2.id].sort());
-      expect(all.pagination.total).toBe(2);
-      for (const tagIds of [[randomUUID()], [randomUUID(), randomUUID()]]) {
-        const r = await service.listNotes(a, q({ tagIds }));
-        expect(r.items).toEqual([]);
-        expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
-      }
+      const tagA = await seedTag(a, 'alpha');
+      const tagB = await seedTag(a, 'beta');
+      const tagC = await seedTag(a, 'gamma');
+      const both = await seedNote(a, 'both', D(3));
+      const onlyA = await seedNote(a, 'onlyA', D(2));
+      const onlyB = await seedNote(a, 'onlyB', D(4));
+      const none = await seedNote(a, 'none', D(1));
+      await attach(both.id, tagA, tagB);
+      await attach(onlyA.id, tagA);
+      await attach(onlyB.id, tagB);
+      return { a, tagA, tagB, tagC, both, onlyA, onlyB, none };
+    }
+
+    it('one tag: only notes with that tag', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagA.id] }));
+      expect(ids(r)).toEqual([w.both.id, w.onlyA.id]);
+      expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 2 });
     });
 
-    it('keeps the requested page and pageSize, and applies to trash lists too', async () => {
-      const a = await newUser();
-      const n = await seedNote(a, 'one', D(1));
-      await service.trashNote(a, n.id);
-      const r = await service.listNotes(
-        a,
-        q({ page: 3, pageSize: 5, trash: true, tagIds: [randomUUID()] }),
-      );
+    it('several tags use AND: a note with only A is excluded', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, w.tagB.id] }));
+      expect(ids(r)).toEqual([w.both.id]);
+      expect(r.pagination.total).toBe(1);
+    });
+
+    it('tag order in tagIds does not matter', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagB.id, w.tagA.id] }));
+      expect(ids(r)).toEqual([w.both.id]);
+    });
+
+    it('no note has every selected tag: empty page, total 0', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, w.tagB.id, w.tagC.id] }));
       expect(r.items).toEqual([]);
-      expect(r.pagination).toEqual({ page: 3, pageSize: 5, total: 0 });
+      expect(r.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
+      const unused = await service.listNotes(w.a, q({ tagIds: [w.tagC.id] }));
+      expect(unused.items).toEqual([]);
+      expect(unused.pagination.total).toBe(0);
+    });
+
+    it('empty tagIds applies no filter (cleared filter)', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q({ tagIds: [] }));
+      expect(ids(r).sort()).toEqual([w.both.id, w.onlyA.id, w.onlyB.id, w.none.id].sort());
+      expect(r.pagination.total).toBe(4);
+    });
+
+    it("another owner's tag and an unknown tag both give an empty page with total 0", async () => {
+      const w = await world();
+      const b = await newUser();
+      const foreignTag = await seedTag(b, 'alpha');
+      const foreign = await service.listNotes(w.a, q({ tagIds: [foreignTag.id] }));
+      const unknown = await service.listNotes(w.a, q({ tagIds: [randomUUID()] }));
+      expect(foreign).toEqual(unknown);
+      expect(foreign.items).toEqual([]);
+      expect(foreign.pagination).toEqual({ page: 1, pageSize: 20, total: 0 });
+    });
+
+    it("a foreign tag mixed with the owner's own tag matches nothing, even if the note carries it", async () => {
+      const w = await world();
+      const b = await newUser();
+      const foreignTag = await seedTag(b, 'alpha');
+      // Even a forged NoteTag row linking A's note to B's tag must not match for A.
+      await attach(w.both.id, foreignTag);
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, foreignTag.id] }));
+      expect(r.items).toEqual([]);
+      expect(r.pagination.total).toBe(0);
+      const viaB = await service.listNotes(b, q({ tagIds: [foreignTag.id] }));
+      expect(viaB.items).toEqual([]);
+      expect(viaB.pagination.total).toBe(0);
+    });
+
+    it('duplicate ids in tagIds collapse and behave like a single id', async () => {
+      const w = await world();
+      const dup = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, w.tagA.id, w.tagA.id] }));
+      const single = await service.listNotes(w.a, q({ tagIds: [w.tagA.id] }));
+      expect(ids(dup)).toEqual(ids(single));
+      expect(dup.pagination).toEqual(single.pagination);
+      expect(ids(dup)).toEqual([w.both.id, w.onlyA.id]);
+    });
+
+    it('filter with paging: total counts the filtered set; walking pages has no gaps or duplicates', async () => {
+      const a = await newUser();
+      const t = await seedTag(a, 'work');
+      const other = await seedTag(a, 'home');
+      const tagged: string[] = [];
+      for (let i = 1; i <= 7; i++) {
+        const n = await seedNote(a, `w${i}`, D(i), idN(i));
+        await attach(n.id, t);
+        tagged.push(n.id);
+      }
+      for (let i = 8; i <= 12; i++) {
+        const n = await seedNote(a, `h${i}`, D(i), idN(i));
+        await attach(n.id, other);
+      }
+      await seedNote(a, 'plain', D(20), idN(20));
+      const expected = [...tagged].reverse(); // updatedAt DESC
+      const walked: string[] = [];
+      for (let page = 1; page <= 4; page++) {
+        const r = await service.listNotes(a, q({ tagIds: [t.id], page, pageSize: 3 }));
+        expect(r.pagination).toEqual({ page, pageSize: 3, total: 7 });
+        walked.push(...ids(r));
+      }
+      expect(walked).toEqual(expected);
+      const past = await service.listNotes(a, q({ tagIds: [t.id], page: 5, pageSize: 3 }));
+      expect(past.items).toEqual([]);
+      expect(past.pagination).toEqual({ page: 5, pageSize: 3, total: 7 });
+    });
+
+    it.each([
+      ['title', 'asc'],
+      ['title', 'desc'],
+      ['createdAt', 'asc'],
+      ['updatedAt', 'asc'],
+    ] as const)('filter combined with sort %s %s', async (sort, order) => {
+      const a = await newUser();
+      const t = await seedTag(a, 'x');
+      const n1 = await seedNote(a, 'bravo', D(1), idN(1), D(30));
+      const n2 = await seedNote(a, 'alpha', D(2), idN(2), D(20));
+      const n3 = await seedNote(a, 'charlie', D(3), idN(3), D(10));
+      const skipped = await seedNote(a, 'aaa-untagged', D(4), idN(4), D(5));
+      await attach(n1.id, t);
+      await attach(n2.id, t);
+      await attach(n3.id, t);
+      const expected = {
+        updatedAt: [n1, n2, n3],
+        createdAt: [n3, n2, n1],
+        title: [n2, n1, n3],
+      }[sort].map((n) => n.id);
+      if (sort === 'title' && order === 'desc') expected.reverse();
+      const r = await service.listNotes(a, q({ tagIds: [t.id], sort, order }));
+      expect(ids(r)).toEqual(expected);
+      expect(ids(r)).not.toContain(skipped.id);
+    });
+
+    it('filter combined with trash=true lists only trashed notes with the tags', async () => {
+      const w = await world();
+      await service.trashNote(w.a, w.both.id);
+      await service.trashNote(w.a, w.onlyB.id);
+      const live = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, w.tagB.id] }));
+      expect(live.items).toEqual([]);
+      expect(live.pagination.total).toBe(0);
+      const trash = await service.listNotes(w.a, q({ trash: true, tagIds: [w.tagB.id] }));
+      expect(ids(trash).sort()).toEqual([w.both.id, w.onlyB.id].sort());
+      expect(trash.pagination.total).toBe(2);
+      const trashAnd = await service.listNotes(
+        w.a,
+        q({ trash: true, tagIds: [w.tagA.id, w.tagB.id], sort: 'title', order: 'asc' }),
+      );
+      expect(ids(trashAnd)).toEqual([w.both.id]);
+    });
+
+    it("ownership: B's list never shows A's notes, with or without A's tag ids", async () => {
+      const w = await world();
+      const b = await newUser();
+      const mine = await seedNote(b, 'mine', D(1));
+      for (const tagIds of [[], [w.tagA.id], [w.tagA.id, w.tagB.id]]) {
+        for (const trash of [false, true]) {
+          const r = await service.listNotes(b, q({ trash, tagIds }));
+          const got = ids(r);
+          for (const n of [w.both, w.onlyA, w.onlyB, w.none]) expect(got).not.toContain(n.id);
+          expect(r.pagination.total).toBe(got.length);
+        }
+      }
+      expect(ids(await service.listNotes(b, q()))).toEqual([mine.id]);
+    });
+
+    it('items carry tags as { id, name, noteCount } ordered by name asc then id', async () => {
+      const a = await newUser();
+      const zed = await seedTag(a, 'zed');
+      const apple = await seedTag(a, 'apple');
+      const mid = await seedTag(a, 'mango');
+      const n = await seedNote(a, 'n', D(1));
+      await attach(n.id, zed, apple, mid);
+      const item = (await service.listNotes(a, q())).items[0];
+      expect(item?.tags).toEqual([
+        { id: apple.id, name: 'apple', noteCount: 1 },
+        { id: mid.id, name: 'mango', noteCount: 1 },
+        { id: zed.id, name: 'zed', noteCount: 1 },
+      ]);
+    });
+
+    it('tags with equal names are ordered by id (distinct normalized names, same display name)', async () => {
+      const a = await newUser();
+      const t1 = await prisma.tag.create({
+        data: { id: idN(2), ownerId: a, name: 'Same', nameNormalized: 'same-1' },
+      });
+      const t2 = await prisma.tag.create({
+        data: { id: idN(1), ownerId: a, name: 'Same', nameNormalized: 'same-2' },
+      });
+      const n = await seedNote(a, 'n', D(1));
+      await attach(n.id, t1, t2);
+      const item = (await service.listNotes(a, q())).items[0];
+      expect(item?.tags.map((t: { id: string }) => t.id)).toEqual([idN(1), idN(2)]);
+    });
+
+    it('noteCount counts the owner non-deleted notes with the tag and excludes trashed notes', async () => {
+      const a = await newUser();
+      const t = await seedTag(a, 'shared');
+      const other = await seedTag(a, 'solo');
+      const n1 = await seedNote(a, 'n1', D(1));
+      const n2 = await seedNote(a, 'n2', D(2));
+      const n3 = await seedNote(a, 'n3', D(3));
+      const gone = await seedNote(a, 'gone', D(4));
+      await attach(n1.id, t);
+      await attach(n2.id, t, other);
+      await attach(n3.id, t);
+      await attach(gone.id, t, other);
+      await service.trashNote(a, gone.id);
+      const r = await service.listNotes(a, q({ sort: 'title', order: 'asc' }));
+      const byTitle = Object.fromEntries(r.items.map((i) => [i.title, i.tags]));
+      expect(byTitle['n1']).toEqual([{ id: t.id, name: 'shared', noteCount: 3 }]);
+      expect(byTitle['n2']).toEqual([
+        { id: t.id, name: 'shared', noteCount: 3 },
+        { id: other.id, name: 'solo', noteCount: 1 },
+      ]);
+      // the trash view shows the same counts (trashed notes are never counted)
+      const trash = await service.listNotes(a, q({ trash: true }));
+      expect(trash.items[0]?.tags).toEqual([
+        { id: t.id, name: 'shared', noteCount: 3 },
+        { id: other.id, name: 'solo', noteCount: 1 },
+      ]);
+    });
+
+    it("noteCount ignores other owners' notes and is the same under a filter", async () => {
+      const w = await world();
+      const b = await newUser();
+      const bNote = await seedNote(b, 'b', D(1));
+      const bTag = await seedTag(b, 'alpha');
+      await attach(bNote.id, bTag);
+      const r = await service.listNotes(w.a, q({ tagIds: [w.tagA.id, w.tagB.id] }));
+      expect(r.items[0]?.tags).toEqual([
+        { id: w.tagA.id, name: 'alpha', noteCount: 2 },
+        { id: w.tagB.id, name: 'beta', noteCount: 2 },
+      ]);
+      // filtered items still show all of their tags, not only the selected ones
+      await attach(w.both.id, w.tagC);
+      const r2 = await service.listNotes(w.a, q({ tagIds: [w.tagA.id] }));
+      const both = r2.items.find((i) => i.id === w.both.id);
+      expect(both?.tags.map((t: { name: string }) => t.name)).toEqual(['alpha', 'beta', 'gamma']);
+    });
+
+    it('notes without tags have tags: []', async () => {
+      const w = await world();
+      const r = await service.listNotes(w.a, q());
+      expect(r.items.find((i) => i.id === w.none.id)?.tags).toEqual([]);
+    });
+
+    it('issues a constant number of Prisma queries regardless of page size', async () => {
+      const queries: string[] = [];
+      const counting = new PrismaClient({
+        adapter: new PrismaPg({ connectionString: url as string }),
+        log: [{ emit: 'event', level: 'query' }],
+      });
+      counting.$on('query', (e: { query: string }) => queries.push(e.query));
+      const countingService = createNoteService({ prisma: counting, now } as never);
+      try {
+        const a = await newUser();
+        const tags = [await seedTag(a, 't1'), await seedTag(a, 't2'), await seedTag(a, 't3')];
+        for (let i = 1; i <= 20; i++) {
+          const n = await seedNote(a, `n${i}`, D(i), idN(i));
+          await attach(n.id, ...tags.slice(0, (i % 3) + 1));
+        }
+        const measure = async (pageSize: number, tagIds: string[]) => {
+          queries.length = 0;
+          const r = await countingService.listNotes(a, q({ pageSize, tagIds }));
+          expect(r.items.length).toBeGreaterThan(0);
+          return queries.length;
+        };
+        for (const tagIds of [[], [tags[0]!.id]]) {
+          await measure(1, tagIds); // warm-up
+          const small = await measure(2, tagIds);
+          const large = await measure(20, tagIds);
+          expect(small).toBeGreaterThan(0);
+          expect(large).toBe(small);
+        }
+      } finally {
+        await counting.$disconnect();
+      }
     });
   });
 
