@@ -43,6 +43,7 @@ try {
     shareService: createShareService({ prisma }),
     versionService: createVersionService({ prisma }),
     searchLimit: searchLimitFromEnv(env),
+    ...(env.WEB_ORIGIN ? { webOrigin: env.WEB_ORIGIN } : {}),
   }).listen(env.PORT, () => logger.info('api listening', { port: env.PORT }));
 } catch (err) {
   if (err instanceof EnvError) {

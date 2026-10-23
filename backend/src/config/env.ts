@@ -26,6 +26,7 @@ const envObject = z.object({
   NOTE_WRITE_RATE_LIMIT_WINDOW_SECONDS: positiveInt(60),
   SEARCH_RATE_LIMIT_MAX: positiveInt(30),
   SEARCH_RATE_LIMIT_WINDOW_SECONDS: positiveInt(60),
+  WEB_ORIGIN: z.preprocess((value) => (value === '' ? undefined : value), z.url().optional()),
 });
 
 // The documented placeholder must never protect OTPs in production.

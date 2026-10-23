@@ -1,6 +1,6 @@
 # AB-1016 --- Playwright End-to-End Journey
 
-**Issue Type:** Story \| **Priority:** Medium \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Medium \| **Status:** Done
 draft\
 **Components:** Frontend, Backend\
 **Labels:** `e2e`, `playwright`
