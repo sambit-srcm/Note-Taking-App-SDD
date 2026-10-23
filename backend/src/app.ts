@@ -6,6 +6,7 @@ import {
   DEFAULT_RATE_LIMITS,
   DEFAULT_RESET_RATE_LIMITS,
   DEFAULT_SEARCH_LIMIT,
+  DEFAULT_SHARE_READ_LIMIT,
   type LimitRule,
   type RateLimitConfig,
   type ResetRateLimitConfig,
@@ -20,8 +21,10 @@ import { createAuthRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { createNotesRouter } from './routes/notes.js';
 import { createSearchRouter } from './routes/search.js';
+import { createSharedRouter } from './routes/share.js';
 import { createTagsRouter } from './routes/tags.js';
 import type { SearchService } from './search/service.js';
+import type { ShareService } from './share/service.js';
 
 export interface AppDeps {
   /** When omitted, /api/auth routes are not mounted (health-only tests). */
@@ -43,6 +46,9 @@ export interface AppDeps {
   /** When omitted, the /api/search route is not mounted. */
   searchService?: SearchService;
   searchLimit?: LimitRule;
+  /** When omitted, share routes are not mounted. */
+  shareService?: ShareService;
+  shareReadLimit?: LimitRule;
 }
 
 export function createApp(deps: AppDeps = {}): express.Express {
@@ -70,11 +76,24 @@ export function createApp(deps: AppDeps = {}): express.Express {
   if (deps.noteService) {
     app.use(
       '/api/notes',
-      createNotesRouter(deps.noteService, jwtSecret, writeLimit, deps.tagService),
+      createNotesRouter(
+        deps.noteService,
+        jwtSecret,
+        writeLimit,
+        deps.tagService,
+        deps.shareService,
+      ),
     );
   }
   if (deps.tagService) {
     app.use('/api/tags', createTagsRouter(deps.tagService, jwtSecret, writeLimit));
+  }
+
+  if (deps.shareService) {
+    app.use(
+      '/api/shared',
+      createSharedRouter(deps.shareService, deps.shareReadLimit ?? DEFAULT_SHARE_READ_LIMIT),
+    );
   }
 
   if (deps.searchService) {

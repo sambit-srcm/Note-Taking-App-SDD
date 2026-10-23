@@ -11,13 +11,16 @@ import { createNoteWriteLimiters, type LimitRule } from '../auth/rateLimit.js';
 import { noteJsonBody } from '../http/jsonBody.js';
 import { parseBody } from '../http/validate.js';
 import type { NoteService } from '../notes/service.js';
+import type { ShareService } from '../share/service.js';
 import type { TagService } from '../tags/service.js';
+import { mountOwnerShare } from './share.js';
 
 export function createNotesRouter(
   notes: NoteService,
   jwtSecret: string,
   writeLimit: LimitRule,
   tags?: TagService,
+  shares?: ShareService,
 ): Router {
   const router = Router();
   const writeLimiters = createNoteWriteLimiters(writeLimit);
@@ -69,6 +72,8 @@ export function createNotesRouter(
       res.status(204).end();
     });
   }
+
+  if (shares) mountOwnerShare(router, shares, writeLimit);
 
   return router;
 }

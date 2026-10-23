@@ -1,6 +1,6 @@
 # AB-1008 --- Public Share Links
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `share`, `security`, `notes`

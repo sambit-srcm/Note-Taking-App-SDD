@@ -58,6 +58,11 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **Index:** `Note(ownerId, deletedAt, createdAt DESC, id)` added by migration.
 - **Sequencing:** sort and pagination ship in AB-1005 first. The tag filter and real `tags` on list items wait for AB-1006 (`Tag`/`NoteTag` do not exist yet).
 
+## Resolved for AB-1008 (user-approved 2026-10-23)
+- **OPEN-2:** a view is counted inside `GET /shared/{token}`. The same anonymous browser is deduplicated for 30 minutes with an httpOnly cookie. Bots are not excluded. The count is approximate.
+- **OPEN-3:** one active link per note. A second create returns `409`. Expiry is `expiresInDays` from 1 to 30, default 7. There is no non-expiring link.
+- **Implemented in AB-1008:** the share operations are no longer `x-proposed`. The raw token is returned only on create and stored as a SHA-256 hash.
+
 ## Resolved for AB-1007 (user-approved 2026-10-23, all four recommended options chosen)
 - **OPEN-7:** blank, punctuation-only (no Unicode letter or digit), over-long (more than 200 code points after trim), or missing `q` returns `422 VALIDATION_ERROR`. Query-operator characters are plain input. A valid query that reduces to nothing searchable (stop words) returns `200` with an empty page.
 - **Highlights:** `snippet` is plain text; `highlights` is `[{start, end}]` (UTF-16 code units, end exclusive). No markup in the response.

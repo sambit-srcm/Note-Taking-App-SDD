@@ -18,6 +18,7 @@ import type {
   searchResultPageSchema,
   searchResultSchema,
 } from '../schemas/search.js';
+import type { shareCreateSchema } from '../schemas/share.js';
 import type { tagInputSchema } from '../schemas/tags.js';
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
@@ -39,3 +40,4 @@ export type SearchQuery = z.infer<typeof searchQuerySchema>;
 export type SearchHighlight = z.infer<typeof highlightSchema>;
 export type SearchResult = z.infer<typeof searchResultSchema>;
 export type SearchResultPage = z.infer<typeof searchResultPageSchema>;
+export type ShareCreate = z.infer<typeof shareCreateSchema>;
