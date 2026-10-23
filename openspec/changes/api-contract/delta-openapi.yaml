@@ -241,17 +241,18 @@ paths:
   /search:
     get:
       tags: [Search]
-      summary: Full-text search over own non-deleted notes
-      x-proposed: true
+      summary: Full-text search over own non-deleted notes (FRS-SEARCH-001)
+      description: "English-stemmed PostgreSQL full-text search over title and readable body text. Ordered by relevance DESC, then id ASC. OPEN-7 approved for AB-1007. Rate limited to 30 per 60 s per IP and per user."
       parameters:
         - name: q
           in: query
           required: true
-          schema: { type: string }   # OPEN-7: empty / punctuation-only behavior
+          description: "Trimmed. Must contain at least one Unicode letter or digit and be at most 200 code points; otherwise 422. Operator characters are plain input. A query of only stop words returns an empty 200 page."
+          schema: { type: string, minLength: 1 }
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PageSize' }
       responses:
-        '200': { description: Ranked page with highlighted previews, content: { application/json: { schema: { $ref: '#/components/schemas/SearchResultPage' } } } }
+        '200': { description: Ranked page with highlight ranges, content: { application/json: { schema: { $ref: '#/components/schemas/SearchResultPage' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/RateLimited' }
@@ -460,13 +461,21 @@ components:
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/NoteSummary' } }
         pagination: { $ref: '#/components/schemas/Pagination' }
+    SearchHighlight:
+      type: object
+      required: [start, end]
+      description: "[start, end) offsets into snippet, in UTF-16 code units. 0 <= start < end <= snippet.length; ranges never overlap."
+      properties:
+        start: { type: integer, minimum: 0 }
+        end: { type: integer, minimum: 1 }
     SearchResult:
       type: object
-      required: [id, title, snippet, updatedAt]
+      required: [id, title, snippet, highlights, updatedAt]
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
-        snippet: { type: string, description: Plain-text preview with matches marked (marker format OPEN-7) }
+        snippet: { type: string, description: "Plain-text preview, no markup, never escaped. Newlines are spaces." }
+        highlights: { type: array, items: { $ref: '#/components/schemas/SearchHighlight' } }
         updatedAt: { type: string, format: date-time }
     SearchResultPage:
       type: object
