@@ -19,6 +19,7 @@ model User {
   refreshTokenSessions    RefreshTokenSession[]
   passwordResetChallenges PasswordResetChallenge[]
   notes                   Note[]
+  tags                    Tag[]
 }
 
 model RefreshTokenSession {
@@ -66,6 +67,7 @@ model Note {
 
   owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   versions NoteVersion[]
+  noteTags NoteTag[]
 
   @@index([ownerId, deletedAt, updatedAt(sort: Desc), id])
   @@index([ownerId, deletedAt, createdAt(sort: Desc), id])
@@ -81,4 +83,31 @@ model NoteVersion {
   note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
   @@index([noteId, createdAt])
+}
+
+model Tag {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @db.Uuid
+  name           String
+  nameNormalized String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  noteTags NoteTag[]
+
+  @@unique([ownerId, nameNormalized])
+  @@index([ownerId])
+}
+
+model NoteTag {
+  noteId    String   @db.Uuid
+  tagId     String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
 }

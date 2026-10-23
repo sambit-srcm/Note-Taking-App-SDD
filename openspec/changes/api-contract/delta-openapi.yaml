@@ -189,14 +189,12 @@ paths:
     get:
       tags: [Tags]
       summary: List own tags with note counts (non-deleted notes only)
-      x-proposed: true
       responses:
         '200': { description: Tags, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Tag' } } } } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       tags: [Tags]
       summary: Create tag
-      x-proposed: true
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TagInput' } } } }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Tag' } } } }
@@ -208,7 +206,6 @@ paths:
     patch:
       tags: [Tags]
       summary: Rename tag
-      x-proposed: true
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TagInput' } } } }
       responses:
         '200': { description: Renamed, content: { application/json: { schema: { $ref: '#/components/schemas/Tag' } } } }
@@ -219,7 +216,6 @@ paths:
     delete:
       tags: [Tags]
       summary: Delete tag; removes associations, keeps notes
-      x-proposed: true
       responses:
         '204': { description: Deleted }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -229,7 +225,6 @@ paths:
     put:
       tags: [Tags]
       summary: Assign own tag to own note (idempotent)
-      x-proposed: true
       responses:
         '204': { description: Assigned }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -237,7 +232,6 @@ paths:
     delete:
       tags: [Tags]
       summary: Remove tag from note
-      x-proposed: true
       responses:
         '204': { description: Removed }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -484,14 +478,14 @@ components:
       type: object
       required: [name]
       properties:
-        name: { type: string, description: Trimmed; max length and case/normalization policy OPEN-14 }
+        name: { type: string, description: Trimmed display name, max 50 code points. Unique per owner on the lowercased name. }
     Tag:
       type: object
       required: [id, name, noteCount]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
-        noteCount: { type: integer, description: Non-deleted notes only (OPEN-14) }
+        noteCount: { type: integer, description: Notes with deletedAt null }
     ShareLink:
       type: object
       required: [status, expiresAt, viewCount]

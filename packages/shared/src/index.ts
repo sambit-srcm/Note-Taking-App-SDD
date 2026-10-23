@@ -21,6 +21,13 @@ export {
   noteTitleSchema,
   noteUpdateSchema,
 } from './schemas/notes.js';
+export {
+  tagIdParamSchema,
+  tagInputSchema,
+  tagListSchema,
+  tagNameSchema,
+  tagSchema,
+} from './schemas/tags.js';
 export { canonicalize, validateTipTapDoc } from './schemas/tiptap.js';
 export type {
   TipTapDoc,
@@ -42,6 +49,7 @@ export {
   PAGE_SIZE_MAX,
   SORT_ORDERS,
 } from './constants/notes.js';
+export { TAG_NAME_MAX_CODE_POINTS } from './constants/tags.js';
 export {
   EMAIL_MAX_LENGTH,
   OTP_LENGTH,

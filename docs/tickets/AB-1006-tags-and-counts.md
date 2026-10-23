@@ -1,6 +1,6 @@
 # AB-1006 --- Tags and Counts
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Backend, Database, Shared\
 **Labels:** `tags`, `notes`, `validation`
