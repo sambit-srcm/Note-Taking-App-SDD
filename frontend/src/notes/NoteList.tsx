@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export interface NoteRow {
   id: string;
   title: string;
@@ -26,7 +28,7 @@ export function NoteList({
       <ul>
         {items.map((item) => (
           <li key={item.id}>
-            <a href={`/notes/${item.id}`}>{item.title}</a>
+            <Link to={`/notes/${item.id}`}>{item.title}</Link>
           </li>
         ))}
       </ul>

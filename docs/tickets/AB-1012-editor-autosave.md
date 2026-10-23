@@ -1,6 +1,6 @@
 # AB-1012 --- TipTap Editor and Autosave
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `editor`, `notes`, `ui`
