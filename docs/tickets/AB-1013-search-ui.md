@@ -1,6 +1,6 @@
 # AB-1013 --- Search UI
 
-**Issue Type:** Story \| **Priority:** Medium \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Medium \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `search`, `ui`

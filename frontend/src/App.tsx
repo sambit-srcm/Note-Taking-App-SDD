@@ -4,6 +4,7 @@ import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { ApiError, createApi } from './auth/api';
 import { setSession } from './auth/session';
 import { EditorPage } from './notes/EditorPage';
+import { SearchPage } from './notes/SearchPage';
 import { NotesPage } from './notes/NotesPage';
 
 function fieldMessage(error: unknown, path: string): string | undefined {
@@ -26,6 +27,7 @@ export default function App({ apiUrl = 'http://127.0.0.1:3000' }: { apiUrl?: str
       <Route path="/reset" element={<ResetRequest api={api} />} />
       <Route path="/reset/confirm" element={<ResetConfirm api={api} />} />
       <Route path="/notes" element={<NotesPage api={api} />} />
+      <Route path="/search" element={<SearchPage api={api} />} />
       <Route path="/notes/new" element={<EditorPage api={api} />} />
       <Route path="/notes/:noteId" element={<EditorPage api={api} />} />
     </Routes>
