@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ApiError, type createApi } from '../auth/api';
 import { getSession } from '../auth/session';
+import { HistoryPanel } from './HistoryPanel';
 import { SharePanel } from './SharePanel';
 import { useAutosave } from './useAutosave';
 
@@ -53,6 +54,7 @@ export function EditorPage({ api }: { api: ReturnType<typeof createApi> }) {
     <main>
       <h1>Edit note</h1>
       {id ? <SharePanel api={api} noteId={id} /> : null}
+      {id ? <HistoryPanel api={api} noteId={id} /> : null}
       <label>
         Title
         <input value={title} onChange={(event) => setTitle(event.target.value)} />

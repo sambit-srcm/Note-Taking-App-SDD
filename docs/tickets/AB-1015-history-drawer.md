@@ -1,6 +1,6 @@
 # AB-1015 --- History Drawer and Restore
 
-**Issue Type:** Story \| **Priority:** Medium \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** Medium \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `versions`, `ui`
