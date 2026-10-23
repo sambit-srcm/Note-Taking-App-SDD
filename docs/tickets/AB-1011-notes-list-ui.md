@@ -1,6 +1,6 @@
 # AB-1011 --- Notes List UI
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `notes`, `tags`, `ui`

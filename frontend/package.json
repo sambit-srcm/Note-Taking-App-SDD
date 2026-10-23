@@ -22,8 +22,11 @@
   },
   "dependencies": {
     "@notes/shared": "workspace:*",
+    "@tanstack/react-query": "5.104.5",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "zod": "4.6.7"
+    "react-router-dom": "7.18.4",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
   }
 }

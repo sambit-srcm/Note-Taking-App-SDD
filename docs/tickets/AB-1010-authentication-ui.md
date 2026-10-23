@@ -1,6 +1,6 @@
 # AB-1010 --- Authentication UI
 
-**Issue Type:** Story \| **Priority:** High \| **Status:** Backlog
+**Issue Type:** Story \| **Priority:** High \| **Status:** Done
 draft\
 **Components:** Frontend\
 **Labels:** `authentication`, `ui`

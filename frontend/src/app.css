@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+  background: #f7f7f4;
+  color: #1c1917;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+main {
+  max-width: 28rem;
+  margin: 3rem auto;
+  padding: 0 1rem;
+}
+
+form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+}
+
+a {
+  color: #1d4ed8;
+  margin-right: 1rem;
+}
