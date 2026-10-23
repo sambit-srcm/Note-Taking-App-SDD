@@ -18,15 +18,15 @@
 
 ## 4. Tag filter (after AB-1006)
 
-- [ ] 4.1 Add the AND tag filter scoped by tag owner; verify one tag, several tags, no match, cleared filter, foreign or unknown tag returns empty, and filter with paging
-- [ ] 4.2 Return tags on list items with one relation query; verify the query count is constant as the page size grows
-- [ ] 4.3 Check query plans with `EXPLAIN` on seeded data; record the result in `design.md` if an index changes
+- [x] 4.1 Add the AND tag filter scoped by tag owner; verify one tag, several tags, no match, cleared filter, foreign or unknown tag returns empty, and filter with paging
+- [x] 4.2 Return tags on list items with one relation query; verify the query count is constant as the page size grows
+- [x] 4.3 Check query plans with `EXPLAIN` on seeded data; record the result in `design.md` if an index changes
 
 ## 5. HTTP layer
 
-- [ ] 5.1 Wire the new query into `GET /notes` using the shared schema; verify Supertest for each spec scenario, including `401`, `422`, ownership, and trash combined with sort and tags
+- [x] 5.1 Wire the new query into `GET /notes` using the shared schema; verify Supertest for each spec scenario, including `401`, `422`, ownership, and trash combined with sort and tags
 
 ## 6. Contract, docs, and checks
 
-- [ ] 6.1 Update `delta-openapi.yaml` and `OPEN_DECISIONS.md` to the approved behavior; verify the YAML parses
-- [ ] 6.2 Final check: `pnpm lint`, `pnpm test`, `pnpm build` pass and `git status` shows no `.env` or secrets; run the `reviewer` agent
+- [x] 6.1 Update `delta-openapi.yaml` and `OPEN_DECISIONS.md` to the approved behavior; verify the YAML parses
+- [x] 6.2 Final check: `pnpm lint`, `pnpm test`, `pnpm build` pass and `git status` shows no `.env` or secrets; run the `reviewer` agent

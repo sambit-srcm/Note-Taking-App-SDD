@@ -22,3 +22,4 @@ AB-1004 gave `NoteService.listNotes`, `noteListQuerySchema`, and index `Note(own
 - [`title` sort is not index-backed] → Bounded by one owner's notes. Revisit if volumes grow.
 - [Filtering with many tags adds joins] → Cap at 10 tags.
 - [AB-1006 schema differs from the assumed relation names] → Confirm names in 1.2 before coding.
+- [EXPLAIN, 5,000 notes for one owner among 15,000, rolled back] All three sorts and the two-tag AND filter run in under 3 ms: one owner-prefix index scan, then a top-N sort. The tag filter uses `NoteTag_tagId_idx`. No index change needed. Postgres chose sequential scans at this table size; index use was confirmed with `enable_seqscan=off`.

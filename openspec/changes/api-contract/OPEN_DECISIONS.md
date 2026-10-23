@@ -40,7 +40,7 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **OPEN-13 (baseline):** nodes `doc`, `paragraph`, `text`, `heading` (level 1 to 3), `bulletList`, `orderedList`, `listItem`, `blockquote`, `codeBlock`, `hardBreak`, `horizontalRule`; marks `bold`, `italic`, `strike`, `code`, `link` (`href` http, https, mailto). Lives in `packages/shared`.
 - **OPEN-6:** editing a trashed note returns `409 CONFLICT`. The owner can still read it.
 - **Oversized body:** `413 PAYLOAD_TOO_LARGE` on note routes only (cap 1 MiB + 64 KiB envelope). Malformed JSON stays `422`. Auth routes keep `422` for oversized bodies.
-- **Scope:** `GET /notes` ships with `page`, `pageSize`, `trash` only; sort and tag filters are AB-1005. Notes return `tags: []` until AB-1005/1006.
+- **Scope:** `GET /notes` shipped with `page`, `pageSize`, `trash` only; sort and tag filters came with AB-1005.
 - **Unknown list query keys** (`sort`, `tag`, `q`) are ignored, not rejected, until AB-1005 defines them.
 - **Rate limit:** `POST`/`PATCH` notes 60 per 60 s, per IP and per user (`NOTE_WRITE_RATE_LIMIT_*`).
 - **Error codes:** adds `PAYLOAD_TOO_LARGE` to the provisional set.
@@ -56,7 +56,8 @@ Needed for approval. Nothing here is decided by FRS/SDS.
 - **OPEN-5:** invalid `page`, `pageSize`, `sort`, `order`, or `tagIds` returns `422`; nothing is normalized.
 - **`tagIds`:** comma-separated UUIDs, at most 10, duplicates collapse, AND semantics, empty or absent means no filter.
 - **Index:** `Note(ownerId, deletedAt, createdAt DESC, id)` added by migration.
-- **Sequencing:** sort and pagination ship in AB-1005 first. The tag filter and real `tags` on list items wait for AB-1006 (`Tag`/`NoteTag` do not exist yet).
+- **Sequencing:** sort and pagination shipped first. The tag filter and real `tags` on list items landed after AB-1006.
+- **List item `tags`:** each item carries `{ id, name, noteCount }` (the `Tag` schema), ordered by name then id. `noteCount` counts the owner's non-deleted notes. A foreign or unknown tag in `tagIds` returns an empty page.
 
 ## Contradictions / gaps
 - SDS §4 requires 403 in the status map, but ownership failures are drafted as 404 (concealment, which SDS allows). 403 is unused; confirm.

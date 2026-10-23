@@ -23,3 +23,26 @@ Checked and OK (source read, tests not executed):
 - Spec scenarios for Sorting and List pagination, plus ownership with sort, each have tests. Tag filter scenarios are intentionally deferred (4.x, 5.1).
 
 Known gap (not a defect): tag filtering and real `tags` on items (tasks 4.x, 5.1, 6.1 tag part) wait for AB-1006; `tags` is always `[]`, as documented. Do not archive until those land or the spec is split.
+
+## 2026-10-23 — APPROVE (scope: uncommitted diff, tasks 4.1-4.3, 5.1, 6.1; tag filter and tags on list items)
+- R1 | fixed | interim empty-page shortcut removed from `listNotes`; replaced by the real AND filter (service.ts:152-158). Prior R1 closed.
+- R3 | resolved (db test now asserts apple, Apple, APPLE, banana, Banana on compose Postgres en_US.utf8; test:db 145 passed) | drift | Low | `title` sort order was unasserted. NOTE: that order is locale-aware, not C-style case-sensitive, so the "case-sensitive" wording in design D4/OPEN_DECISIONS is inexact. Wording left unchanged pending the user.
+  Impact: The collation guarantee is still unverified; en_US vs C would order 'apple/Apple/banana' differently.
+  Action: Assert a concrete order for 'apple/Apple/banana' on the compose DB, or reword the decision to "database default collation, deterministic" (and rename the test).
+- R5 | open (deferred, non-blocking; user informed) | gap | Medium | `GET /notes/{id}` (and create/update responses) still return `tags: []` (service.ts:18, 69) while a note can now carry tags. List items show real tags, the detail view of the same note shows none.
+  Impact: A client rendering the editor from the detail response sees no tags on a tagged note (FRS-TAG-001 assign/view). Not in this change's spec (spec requires tags on list items only), so not blocking.
+  Action: Track as a follow-up change (detail tags via the same relation select), or state in OPEN_DECISIONS that detail tags are deferred.
+- R6 | fixed (double space removed; NoteSummary `tags` items reference the Tag schema, checked) | gap | Low | Contract typo and unverified Tag ref.
+  Impact: Cosmetic; contract may lag the response shape.
+  Action: Fix the typo; confirm the NoteSummary `tags` items reference the Tag schema.
+- R7 | resolved (lint, test 230+317+10, build, test:db 145 re-run on the final tree; 6.2 ticked) | gap | Low | Final gate evidence.
+  Impact: Gate evidence is reported, not reproduced here.
+  Action: Tick 6.2 once the gates are rerun on the final tree.
+
+Checked and OK (source read):
+- AND filter: one `noteTags.some` clause per tag id, each with `tag: { ownerId }`; a foreign or unknown tag matches nothing and returns the same empty page (test compares foreign == unknown). A forged NoteTag to another owner's tag does not match. Empty `tagIds` yields `AND: []` (no filter). `where` is shared by count and findMany, so `total` is the filtered count.
+- Item tags: relation select is owner-scoped; `noteCount` via one grouped query limited to owner and `deletedAt: null`, matching the tag list. Query count is constant (relation select + one groupBy, plus count); a test measures it against two page sizes, with and without a filter.
+- Ordering by name then id is done in memory, deterministic. No raw SQL, no user input names a column.
+- `noteSummarySchema.tags` now `z.array(tagSchema)`, reusing the shared Tag schema (no duplication). 401/422 route tests cover tagIds scenarios.
+- Ownership: list for user B never shows A's notes with or without A's tag ids (db test).
+- EXPLAIN note in design.md is documentation only; not re-run.
