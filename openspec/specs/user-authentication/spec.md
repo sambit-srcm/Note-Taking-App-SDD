@@ -1,13 +1,12 @@
-# Spec Delta
+# user-authentication Specification
 
 ## Purpose
-
 Lets a visitor register and authenticate, and gives later routes a verified user identity, using short-lived access tokens and rotating database-backed refresh sessions (FRS-AUTH-001 to FRS-AUTH-003).
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Registration (FRS-AUTH-001)
-The API SHALL let a visitor register with an email and password. Email SHALL be normalized (trim surrounding whitespace, lowercase; no dot or plus-alias stripping) before uniqueness checks. The password SHALL be stored only as a secure hash. Inputs SHALL be validated server-side, and the password SHALL meet the approved password policy (OPEN-12).
+The API SHALL let a visitor register with an email and password. Email SHALL be normalized (trim surrounding whitespace, lowercase; no dot or plus-alias stripping) before uniqueness checks. The password SHALL be stored only as a secure hash. Inputs SHALL be validated server-side, and the password SHALL be 12 to 128 characters with no composition rules.
 
 #### Scenario: Successful registration
 - **WHEN** a visitor registers with a new valid email and a valid password
@@ -16,7 +15,7 @@ The API SHALL let a visitor register with an email and password. Email SHALL be 
 
 #### Scenario: Duplicate normalized email
 - **WHEN** a visitor registers with an email whose normalized form already exists
-- **THEN** the request is rejected with the approved duplicate-email response (OPEN-9)
+- **THEN** the request is rejected with `409`
 - **AND** no second user is created
 
 #### Scenario: Invalid input
