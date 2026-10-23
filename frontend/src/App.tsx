@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { ApiError, createApi } from './auth/api';
-import { clearSession, getSession, setSession } from './auth/session';
+import { setSession } from './auth/session';
+import { NotesPage } from './notes/NotesPage';
 
 function fieldMessage(error: unknown, path: string): string | undefined {
   if (!(error instanceof ApiError)) return undefined;
@@ -23,7 +24,7 @@ export default function App({ apiUrl = 'http://127.0.0.1:3000' }: { apiUrl?: str
       <Route path="/login" element={<Login api={api} />} />
       <Route path="/reset" element={<ResetRequest api={api} />} />
       <Route path="/reset/confirm" element={<ResetConfirm api={api} />} />
-      <Route path="/notes" element={<Notes api={api} />} />
+      <Route path="/notes" element={<NotesPage api={api} />} />
     </Routes>
   );
 }
@@ -212,32 +213,6 @@ function ResetConfirm({ api }: { api: ReturnType<typeof createApi> }) {
         <FormError error={mutation.error} />
         <button type="submit">Reset password</button>
       </form>
-    </main>
-  );
-}
-
-function Notes({ api }: { api: ReturnType<typeof createApi> }) {
-  const navigate = useNavigate();
-  const logout = useMutation({
-    mutationFn: () =>
-      api.request('/api/auth/logout', {
-        method: 'POST',
-        auth: true,
-        body: { refreshToken: getSession()?.refreshToken },
-      }),
-    onSettled: () => {
-      clearSession();
-      navigate('/login');
-    },
-  });
-  if (!getSession()) return <Navigate to="/login" replace />;
-  return (
-    <main>
-      <h1>Notes</h1>
-      <p>Your notes</p>
-      <button type="button" onClick={() => logout.mutate()}>
-        Log out
-      </button>
     </main>
   );
 }
