@@ -51,7 +51,12 @@ This workflow revises artifacts that already exist; it never creates missing one
 3. **Understand the request**
    - If the user asked for a specific revision ("the design now uses X"), that is the starting edit.
    - If they only said "update" / "make this coherent", treat it as a coherence review: read the existing artifacts and check them against each other for contradictions, gaps, and duplication.
-   - **Delta spec, not a new ticket.** If the behavior belongs to a capability that already has a spec, revise that delta. Follow `openspec/config.yaml` `rules.specs` for `## ADDED`, `## MODIFIED`, and `## REMOVED Requirements`. Do not create another change, ticket, or spec file.
+   - **Delta spec, not a new ticket.** If the behavior belongs to a capability that already has a spec, revise that same delta file. Do not create another change, ticket, or spec file. Do not edit `openspec/specs/` during update.
+   - **Headings are required in the delta.** Every requirement this revision adds, changes, or drops MUST sit under one of these headings in that delta file. A requirement written outside them is incomplete.
+     - `## ADDED Requirements` — the requirement is not in `openspec/specs/<capability>/spec.md`.
+     - `## MODIFIED Requirements` — the requirement is already in that main spec. Restate the whole requirement, including any scenario this revision adds or drops.
+     - `## REMOVED Requirements` — this change drops the whole requirement that is already in that main spec. Name the requirement under this heading.
+     - A single new or deleted scenario does not get its own heading. Put it inside the ADDED or MODIFIED requirement it belongs to.
 
 4. **Read and reconcile**
    - Read the artifact(s) the request touches and the change's other existing artifacts.
@@ -97,4 +102,5 @@ After each invocation, show:
 - Do not advance the build frontier: if an artifact has empty `existingOutputPaths` and status `ready` or `blocked`, creating them is a separate step, outside this workflow. Leave `skipped` artifacts untouched. The only new-file scope is a confirmed concrete path under a glob artifact whose `existingOutputPaths` is non-empty.
 - Confirm every edit with the user before writing.
 - If the request changes the change's _intent_ rather than refining it, ask for a distinct unused change name and recommend `openspec new change "<new-change-name>"` instead (the "Update vs. Start Fresh" heuristic).
-- Follow `openspec/config.yaml` `rules` for artifact shape. Do not restate those rules in this command.
+- Follow `openspec/config.yaml` `rules` for artifact shape. The delta heading rule in step 3 is required in this command; do not drop it when applying those rules.
+- Before writing a delta spec, confirm each touched requirement is under `## ADDED Requirements`, `## MODIFIED Requirements`, or `## REMOVED Requirements`. If one is not, fix the draft before asking the user to confirm.
